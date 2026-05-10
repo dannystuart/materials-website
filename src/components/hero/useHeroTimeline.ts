@@ -91,6 +91,16 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
           );
         });
 
+        const gradients = section.querySelector<HTMLElement>("[data-hero-gradients]");
+        if (gradients) {
+          gsap.set(gradients, { opacity: 0 });
+          tl.to(
+            gradients,
+            { opacity: 1, ease: "power1.out", duration: 0.20 },
+            0.80,
+          );
+        }
+
         return tl;
       };
 
