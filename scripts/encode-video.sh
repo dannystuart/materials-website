@@ -6,16 +6,20 @@ OUT="public/videos"
 mkdir -p "$OUT"
 
 # Desktop H.264 — keyframe every 6 frames for smooth backward scrub
-# CRF 26 (raised from 22) keeps the 4092x4092 60fps source under the 20 MB target
+# Downscaled to 1080p (square source -> 1080x1080) so the browser decoder isn't
+# crushed by 16 MP/frame during GSAP scrub. CRF 24 to recover quality once the
+# 1080p downscale dropped the file well below the 8 MB floor at CRF 26.
 ffmpeg -y -i "$SRC" \
-  -vcodec libx264 -crf 26 -preset slow \
+  -vf "scale=-2:1080" \
+  -vcodec libx264 -crf 24 -preset slow \
   -g 6 -keyint_min 6 -sc_threshold 0 \
   -movflags +faststart -an \
   "$OUT/materials-hero.mp4"
 
 # Desktop VP9 fallback
-# CRF 40 (raised from 32) keeps the file under 20 MB; VP9 is more aggressive on this source
+# Same 1080p downscale as the H.264 desktop encode for the same decoder reasons.
 ffmpeg -y -i "$SRC" \
+  -vf "scale=-2:1080" \
   -c:v libvpx-vp9 -crf 40 -b:v 0 \
   -g 6 -keyint_min 6 \
   -an \
