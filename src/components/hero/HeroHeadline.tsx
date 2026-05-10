@@ -1,0 +1,40 @@
+import { HEADLINE_LINES } from "./headlineLines";
+import { CreativeWord } from "./icons/CreativeWord";
+
+export function HeroHeadline() {
+  return (
+    <h1
+      className="hero-headline font-display font-semibold text-white max-w-[595px]"
+      style={{
+        fontSize: "64px",
+        lineHeight: 1.3,
+        letterSpacing: "-2.13px",
+      }}
+      data-hero-headline
+    >
+      {HEADLINE_LINES.map((line, lineIdx) => (
+        <span className="block" data-hero-headline-line={lineIdx} key={lineIdx}>
+          {line.map((word, wordIdx) =>
+            word.type === "svg" ? (
+              <span
+                key={wordIdx}
+                className="hero-word inline-block align-baseline mr-[0.25em]"
+                data-hero-word
+              >
+                <CreativeWord className="align-baseline" />
+              </span>
+            ) : (
+              <span
+                key={wordIdx}
+                className="hero-word inline-block mr-[0.25em]"
+                data-hero-word
+              >
+                {word.text}
+              </span>
+            )
+          )}
+        </span>
+      ))}
+    </h1>
+  );
+}
