@@ -52,6 +52,20 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
           );
         }
 
+        tl.to(
+          video,
+          { x: "-12%", scale: 0.78, ease: "power2.inOut", duration: 0.15 },
+          0.40,
+        );
+
+        if (logo) {
+          tl.to(
+            logo,
+            { scale: 0.7, ease: "power2.inOut", duration: 0.15 },
+            0.40,
+          );
+        }
+
         return tl;
       };
 
