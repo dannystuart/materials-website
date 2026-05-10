@@ -35,6 +35,23 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
           duration: 1,
         });
 
+        const logo = section.querySelector<HTMLElement>("[data-hero-logo]");
+        if (logo) {
+          gsap.set(logo, { opacity: 0, scale: 0.96, y: 12, filter: "blur(6px)" });
+          tl.to(
+            logo,
+            {
+              opacity: 1,
+              scale: 1,
+              y: 0,
+              filter: "blur(0px)",
+              ease: "power2.out",
+              duration: 0.15, // 5% → 20% of timeline
+            },
+            0.05, // start at 5%
+          );
+        }
+
         return tl;
       };
 
