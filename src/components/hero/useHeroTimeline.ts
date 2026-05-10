@@ -109,6 +109,7 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
       } else {
         const onMeta = () => {
           setup();
+          ScrollTrigger.refresh();
           video.removeEventListener("loadedmetadata", onMeta);
         };
         video.addEventListener("loadedmetadata", onMeta);
