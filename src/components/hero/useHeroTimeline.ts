@@ -66,6 +66,31 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
           );
         }
 
+        const headlineLines = section.querySelectorAll<HTMLElement>(
+          "[data-hero-headline-line]",
+        );
+
+        headlineLines.forEach((line, lineIdx) => {
+          const words = line.querySelectorAll<HTMLElement>("[data-hero-word]");
+          if (!words.length) return;
+
+          gsap.set(words, { opacity: 0, y: 14, filter: "blur(10px)" });
+
+          const lineOffset = 0.50 + lineIdx * 0.06; // ~120ms per line at scrub=1, scaled
+          tl.to(
+            words,
+            {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              ease: "power2.out",
+              duration: 0.05,
+              stagger: { each: 0.025, from: "start" },
+            },
+            lineOffset,
+          );
+        });
+
         return tl;
       };
 
