@@ -5,10 +5,15 @@ import { HeroLogo } from "./HeroLogo";
 import { HeroHeadline } from "./HeroHeadline";
 import { HeroVideo } from "./HeroVideo";
 import { HeroGradients } from "./HeroGradients";
+import { useHeroTimeline } from "./useHeroTimeline";
+import { useReducedMotion } from "./useReducedMotion";
 
 export function HeroDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const reduced = useReducedMotion();
+
+  useHeroTimeline({ sectionRef, videoRef, enabled: !reduced });
 
   return (
     <section
