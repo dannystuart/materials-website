@@ -26,10 +26,10 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
             trigger: section,
             start: "top top",
             end: "+=3000",
-            scrub: 1,
+            scrub: 0.5,
             pin: true,
             anticipatePin: 1,
-            pinType: isTouch ? "fixed" : "transform",
+            pinType: "fixed",
           },
         });
 
@@ -58,7 +58,7 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
 
         tl.to(
           video,
-          { x: "-12%", scale: 0.78, ease: "power2.inOut", duration: 0.15 },
+          { x: "-28%", scale: 0.78, ease: "power2.inOut", duration: 0.15 },
           0.40,
         );
 

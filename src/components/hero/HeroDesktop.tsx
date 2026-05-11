@@ -21,22 +21,26 @@ export function HeroDesktop() {
       data-hero-section
       className="relative w-full min-h-screen overflow-hidden bg-hero-bg"
     >
-      <div className="absolute inset-0 grid grid-cols-12 gap-x-6 px-12 pt-24">
-        <div className="col-span-3 z-30" data-hero-logo-slot>
-          <HeroLogo />
-        </div>
-        <div
-          className="col-span-6 z-10 flex items-center justify-center"
-          data-hero-video-slot
-        >
-          <HeroVideo ref={videoRef} variant="desktop" />
-        </div>
-        <div className="col-span-3 z-30 flex items-center" data-hero-headline-slot>
-          <HeroHeadline />
-        </div>
+      <div
+        className="absolute inset-0 z-10 flex items-center justify-center [&>video]:h-[85vh] [&>video]:w-auto [&>video]:max-w-none"
+        data-hero-video-slot
+      >
+        <HeroVideo ref={videoRef} variant="desktop" />
       </div>
       <div className="absolute inset-0 z-20">
         <HeroGradients />
+      </div>
+      <div
+        className="absolute top-1/2 left-12 z-30 -translate-y-1/2 min-[1600px]:left-[12vw] min-[2200px]:left-[20vw]"
+        data-hero-logo-slot
+      >
+        <HeroLogo />
+      </div>
+      <div
+        className="absolute top-1/2 right-24 z-30 -translate-y-1/2 max-w-[595px] min-[1600px]:right-[14vw] min-[2200px]:right-[22vw]"
+        data-hero-headline-slot
+      >
+        <HeroHeadline />
       </div>
     </section>
   );

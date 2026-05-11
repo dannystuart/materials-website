@@ -6,9 +6,9 @@ export function HeroHeadline() {
     <h1
       className="hero-headline font-display font-semibold text-white max-w-[595px]"
       style={{
-        fontSize: "64px",
-        lineHeight: 1.3,
-        letterSpacing: "-2.13px",
+        fontSize: "56px",
+        lineHeight: 1.15,
+        letterSpacing: "-1.87px",
       }}
       data-hero-headline
     >
@@ -18,7 +18,7 @@ export function HeroHeadline() {
             word.type === "svg" ? (
               <span
                 key={wordIdx}
-                className="hero-word inline-block align-baseline mr-[0.25em]"
+                className="hero-word inline-block align-baseline"
                 data-hero-word
               >
                 <CreativeWord className="align-baseline" />

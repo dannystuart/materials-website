@@ -9,14 +9,14 @@ export function HeroGradients() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 90% 100% at 50% 100%, #2C5EA0 0%, rgba(44,94,160,0) 70%)",
+            "radial-gradient(ellipse 150% 100% at 50% 100%, rgba(44,94,160,0.3) 0%, rgba(44,94,160,0) 70%)",
         }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 65% 75% at 50% 100%, #5395ED 0%, rgba(83,149,237,0) 70%)",
+            "radial-gradient(ellipse 110% 80% at 50% 100%, rgba(83,149,237,0.3) 0%, rgba(83,149,237,0) 70%)",
           mixBlendMode: "plus-lighter",
         }}
       />
