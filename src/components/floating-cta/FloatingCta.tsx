@@ -1,9 +1,33 @@
 "use client";
 
 import { useRef } from "react";
+import { useGSAP, gsap } from "@/lib/gsap";
+import { useReducedMotion } from "@/components/hero/useReducedMotion";
 
 export function FloatingCta() {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const borderRef = useRef<HTMLSpanElement | null>(null);
+  const reducedMotion = useReducedMotion();
+
+  useGSAP(
+    () => {
+      if (reducedMotion) return;
+      const border = borderRef.current;
+      if (!border) return;
+
+      const tween = gsap.to(border, {
+        opacity: 0.45,
+        duration: 2,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+      });
+      return () => {
+        tween.kill();
+      };
+    },
+    { scope: rootRef, dependencies: [reducedMotion] },
+  );
 
   return (
     <div
@@ -24,6 +48,7 @@ export function FloatingCta() {
       }}
     >
       <span
+        ref={borderRef}
         aria-hidden="true"
         data-cta-border
         className="cta-pill-border pointer-events-none absolute inset-0 rounded-full"
