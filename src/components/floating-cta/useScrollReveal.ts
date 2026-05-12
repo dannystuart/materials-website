@@ -8,12 +8,14 @@ type Args = {
   reducedMotion: boolean;
 };
 
-function findVisibleHero(): HTMLElement | null {
-  const heroes = document.querySelectorAll<HTMLElement>("[data-hero-section]");
-  for (const hero of heroes) {
-    if (hero.offsetParent !== null) return hero;
+function findVisibleAnchor(): HTMLElement | null {
+  const candidates = document.querySelectorAll<HTMLElement>(
+    '[data-section="pitch"]',
+  );
+  for (const el of candidates) {
+    if (el.offsetParent !== null) return el;
   }
-  return heroes[0] ?? null;
+  return candidates[0] ?? null;
 }
 
 export function useScrollReveal({ pillRef, reducedMotion }: Args) {
@@ -22,8 +24,8 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       const pill = pillRef.current;
       if (!pill) return;
 
-      const hero = findVisibleHero();
-      if (!hero) return;
+      const anchor = findVisibleAnchor();
+      if (!anchor) return;
 
       gsap.set(pill, {
         opacity: 0,
@@ -33,8 +35,8 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
 
       if (reducedMotion) {
         const st = ScrollTrigger.create({
-          trigger: hero,
-          start: "bottom 85%",
+          trigger: anchor,
+          start: "top 85%",
           onEnter: () =>
             gsap.set(pill, { opacity: 1, y: 0, pointerEvents: "auto" }),
           onLeaveBack: () =>
@@ -56,8 +58,8 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       });
 
       const st = ScrollTrigger.create({
-        trigger: hero,
-        start: "bottom 85%",
+        trigger: anchor,
+        start: "top 85%",
         onEnter: () => tween.play(),
         onLeaveBack: () => tween.reverse(),
       });
