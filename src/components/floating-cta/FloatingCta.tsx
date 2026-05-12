@@ -4,13 +4,16 @@ import { useRef } from "react";
 import { useGSAP, gsap } from "@/lib/gsap";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { useScrollReveal } from "./useScrollReveal";
+import { useMagneticPointer } from "./useMagneticPointer";
 
 export function FloatingCta() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const borderRef = useRef<HTMLSpanElement | null>(null);
+  const rippleRef = useRef<HTMLSpanElement | null>(null);
   const reducedMotion = useReducedMotion();
 
   useScrollReveal({ pillRef: rootRef, reducedMotion });
+  useMagneticPointer({ pillRef: rootRef, rippleRef, reducedMotion });
 
   useGSAP(
     () => {
@@ -40,7 +43,7 @@ export function FloatingCta() {
         fixed top-5 left-1/2 -translate-x-1/2 z-50
         flex items-center
         h-12 pl-4 pr-1.5
-        rounded-full
+        rounded-full overflow-hidden
         bg-[rgba(8,8,12,0.72)]
         backdrop-blur-xl backdrop-saturate-[1.4]
         shadow-[0_10px_40px_rgba(0,0,0,0.5)]
@@ -50,6 +53,11 @@ export function FloatingCta() {
         WebkitBackdropFilter: "blur(20px) saturate(140%)",
       }}
     >
+      <span
+        ref={rippleRef}
+        aria-hidden="true"
+        className="cta-ripple"
+      />
       <span
         ref={borderRef}
         aria-hidden="true"

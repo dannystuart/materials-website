@@ -130,3 +130,30 @@ body {
   -webkit-mask-composite: xor;
           mask-composite: exclude;
 }
+
+.cta-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cta-ripple::before {
+  content: "";
+  position: absolute;
+  left: var(--ripple-x, 50%);
+  top: var(--ripple-y, 50%);
+  width: var(--ripple-radius, 0px);
+  height: var(--ripple-radius, 0px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.35) 0%,
+    rgba(249, 115, 22, 0.20) 30%,
+    transparent 70%
+  );
+  opacity: var(--ripple-opacity, 0);
+  will-change: width, height, opacity;
+}
