@@ -10,10 +10,18 @@ export function FloatingCta() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const borderRef = useRef<HTMLSpanElement | null>(null);
   const rippleRef = useRef<HTMLSpanElement | null>(null);
+  const buttonRef = useRef<HTMLAnchorElement | null>(null);
+  const arrowRef = useRef<HTMLSpanElement | null>(null);
   const reducedMotion = useReducedMotion();
 
   useScrollReveal({ pillRef: rootRef, reducedMotion });
-  useMagneticPointer({ pillRef: rootRef, rippleRef, reducedMotion });
+  useMagneticPointer({
+    pillRef: rootRef,
+    rippleRef,
+    buttonRef,
+    arrowRef,
+    reducedMotion,
+  });
 
   useGSAP(
     () => {
@@ -71,6 +79,7 @@ export function FloatingCta() {
         </span>
         <span aria-hidden="true" className="h-5 w-px bg-white/12" />
         <a
+          ref={buttonRef}
           href="#buy"
           data-cta-button
           className="
@@ -84,6 +93,7 @@ export function FloatingCta() {
         >
           <span>Buy</span>
           <span
+            ref={arrowRef}
             data-cta-arrow
             aria-hidden="true"
             className="inline-block will-change-transform"
