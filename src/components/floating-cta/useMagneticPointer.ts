@@ -156,6 +156,57 @@ export function useMagneticPointer({
       scaleTarget = 1;
     };
 
+    const onFocus = () => {
+      const border = borderRef.current;
+      if (border) {
+        gsap.to(border, {
+          opacity: 0.85,
+          duration: 0.25,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
+      gsap.to(pill, {
+        "--cta-saturate": "180%",
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+      pulseTweenRef.current?.pause();
+    };
+
+    const onBlur = () => {
+      const border = borderRef.current;
+      if (border) {
+        gsap.to(border, {
+          opacity: 0.35,
+          duration: 0.25,
+          ease: "power2.out",
+          overwrite: "auto",
+          onComplete: () => pulseTweenRef.current?.resume(),
+        });
+      } else {
+        pulseTweenRef.current?.resume();
+      }
+      gsap.to(pill, {
+        "--cta-saturate": "140%",
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: "auto",
+      });
+    };
+
+    const onKeyActivate = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const bRect = button.getBoundingClientRect();
+      const pRect = pill.getBoundingClientRect();
+      fireRipple(
+        bRect.left + bRect.width / 2 - pRect.left,
+        bRect.top + bRect.height / 2 - pRect.top,
+        { peakOpacity: 0.45, peakRadiusPct: 0.7, duration: 0.4 },
+      );
+    };
+
     const loop = () => {
       current.x += (target.x - current.x) * 0.18;
       current.y += (target.y - current.y) * 0.18;
@@ -174,6 +225,9 @@ export function useMagneticPointer({
     pill.addEventListener("pointermove", onMove);
     button.addEventListener("pointerenter", buttonEnter);
     button.addEventListener("pointerleave", buttonLeave);
+    button.addEventListener("focus", onFocus);
+    button.addEventListener("blur", onBlur);
+    button.addEventListener("keydown", onKeyActivate);
 
     return () => {
       pill.removeEventListener("pointerenter", onEnter);
@@ -183,6 +237,9 @@ export function useMagneticPointer({
       pill.removeEventListener("pointermove", onMove);
       button.removeEventListener("pointerenter", buttonEnter);
       button.removeEventListener("pointerleave", buttonLeave);
+      button.removeEventListener("focus", onFocus);
+      button.removeEventListener("blur", onBlur);
+      button.removeEventListener("keydown", onKeyActivate);
       cancelAnimationFrame(rafId);
       button.style.transform = "";
       arrow.style.transform = "";

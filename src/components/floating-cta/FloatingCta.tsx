@@ -87,6 +87,7 @@ export function FloatingCta() {
           href="#buy"
           data-cta-button
           className="
+            cta-focus-ring
             relative inline-flex items-center gap-1
             rounded-full bg-white text-[#0A0A0F]
             px-3 md:px-4 py-3 md:py-[9px] -my-1 md:my-0

@@ -139,6 +139,13 @@ body {
   overflow: hidden;
 }
 
+.cta-focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.95),
+    0 0 0 4px rgba(168, 85, 247, 0.8);
+}
+
 .cta-ripple::before {
   content: "";
   position: absolute;
