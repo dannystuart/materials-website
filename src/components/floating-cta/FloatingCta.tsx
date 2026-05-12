@@ -3,11 +3,14 @@
 import { useRef } from "react";
 import { useGSAP, gsap } from "@/lib/gsap";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
+import { useScrollReveal } from "./useScrollReveal";
 
 export function FloatingCta() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const borderRef = useRef<HTMLSpanElement | null>(null);
   const reducedMotion = useReducedMotion();
+
+  useScrollReveal({ pillRef: rootRef, reducedMotion });
 
   useGSAP(
     () => {
