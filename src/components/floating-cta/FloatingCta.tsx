@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import type { CSSProperties } from "react";
 import { useGSAP, gsap } from "@/lib/gsap";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { useScrollReveal } from "./useScrollReveal";
@@ -12,6 +13,7 @@ export function FloatingCta() {
   const rippleRef = useRef<HTMLSpanElement | null>(null);
   const buttonRef = useRef<HTMLAnchorElement | null>(null);
   const arrowRef = useRef<HTMLSpanElement | null>(null);
+  const pulseTweenRef = useRef<gsap.core.Tween | null>(null);
   const reducedMotion = useReducedMotion();
 
   useScrollReveal({ pillRef: rootRef, reducedMotion });
@@ -20,6 +22,8 @@ export function FloatingCta() {
     rippleRef,
     buttonRef,
     arrowRef,
+    borderRef,
+    pulseTweenRef,
     reducedMotion,
   });
 
@@ -29,7 +33,7 @@ export function FloatingCta() {
       const border = borderRef.current;
       if (!border) return;
 
-      const tween = gsap.to(border, {
+      pulseTweenRef.current = gsap.to(border, {
         opacity: 0.45,
         duration: 2,
         ease: "sine.inOut",
@@ -37,11 +41,18 @@ export function FloatingCta() {
         repeat: -1,
       });
       return () => {
-        tween.kill();
+        pulseTweenRef.current?.kill();
+        pulseTweenRef.current = null;
       };
     },
     { scope: rootRef, dependencies: [reducedMotion] },
   );
+
+  const rootStyle = {
+    "--cta-saturate": "140%",
+    WebkitBackdropFilter: "blur(20px) saturate(var(--cta-saturate))",
+    backdropFilter: "blur(20px) saturate(var(--cta-saturate))",
+  } as CSSProperties;
 
   return (
     <div
@@ -53,19 +64,12 @@ export function FloatingCta() {
         h-12 pl-4 pr-1.5
         rounded-full overflow-hidden
         bg-[rgba(8,8,12,0.72)]
-        backdrop-blur-xl backdrop-saturate-[1.4]
         shadow-[0_10px_40px_rgba(0,0,0,0.5)]
         will-change-transform
       "
-      style={{
-        WebkitBackdropFilter: "blur(20px) saturate(140%)",
-      }}
+      style={rootStyle}
     >
-      <span
-        ref={rippleRef}
-        aria-hidden="true"
-        className="cta-ripple"
-      />
+      <span ref={rippleRef} aria-hidden="true" className="cta-ripple" />
       <span
         ref={borderRef}
         aria-hidden="true"
