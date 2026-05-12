@@ -1,6 +1,6 @@
 "use client";
 
-import { useGSAP, gsap, ScrollTrigger } from "@/lib/gsap";
+import { useGSAP, gsap } from "@/lib/gsap";
 import type { RefObject } from "react";
 
 type Args = {
@@ -33,39 +33,25 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
         pointerEvents: "none",
       });
 
-      if (reducedMotion) {
-        const st = ScrollTrigger.create({
-          trigger: anchor,
-          start: "top 85%",
-          onEnter: () =>
-            gsap.set(pill, { opacity: 1, y: 0, pointerEvents: "auto" }),
-          onLeaveBack: () =>
-            gsap.set(pill, { opacity: 0, y: -12, pointerEvents: "none" }),
-        });
-        return () => {
-          st.kill();
-        };
-      }
-
-      const tween = gsap.to(pill, {
-        opacity: 1,
-        y: 0,
-        duration: 0.4,
-        ease: "power2.out",
-        paused: true,
-        onStart: () => gsap.set(pill, { pointerEvents: "auto" }),
-        onReverseComplete: () => gsap.set(pill, { pointerEvents: "none" }),
-      });
-
-      const st = ScrollTrigger.create({
-        trigger: anchor,
-        start: "top 85%",
-        onEnter: () => tween.play(),
-        onLeaveBack: () => tween.reverse(),
-      });
+      const tween = gsap.fromTo(
+        pill,
+        { opacity: 0, y: -12, pointerEvents: "none" },
+        {
+          opacity: 1,
+          y: 0,
+          pointerEvents: "auto",
+          duration: reducedMotion ? 0 : 0.4,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: anchor,
+            start: "top 85%",
+            toggleActions: "play none none reverse",
+          },
+        },
+      );
 
       return () => {
-        st.kill();
+        tween.scrollTrigger?.kill();
         tween.kill();
       };
     },
