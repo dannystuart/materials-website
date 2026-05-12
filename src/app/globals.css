@@ -13,14 +13,14 @@ body {
 
 .hero-video {
   -webkit-mask-image: radial-gradient(
-    ellipse 90% 85% at center,
-    #000 55%,
-    transparent 100%
+    ellipse 72% 68% at center,
+    #000 35%,
+    transparent 92%
   );
   mask-image: radial-gradient(
-    ellipse 90% 85% at center,
-    #000 55%,
-    transparent 100%
+    ellipse 72% 68% at center,
+    #000 35%,
+    transparent 92%
   );
 }
 
@@ -33,4 +33,100 @@ body {
   font-style: italic;
   font-family: var(--font-display), system-ui, sans-serif;
   padding-right: 0.25em;
+}
+
+.specimen-mask {
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 85% at center,
+    #000 55%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 90% 85% at center,
+    #000 55%,
+    transparent 100%
+  );
+}
+
+.library-video-mask {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.04) 15%,
+    rgba(0, 0, 0, 0.18) 28%,
+    rgba(0, 0, 0, 0.5) 40%,
+    rgba(0, 0, 0, 0.85) 50%,
+    #000 58%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.04) 15%,
+    rgba(0, 0, 0, 0.18) 28%,
+    rgba(0, 0, 0, 0.5) 40%,
+    rgba(0, 0, 0, 0.85) 50%,
+    #000 58%,
+    transparent 100%
+  );
+}
+
+.library-plate-fade {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 44%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 44%,
+    transparent 100%
+  );
+}
+
+.library-gradient {
+  display: inline-block;
+  background: linear-gradient(90deg, #F472B6 0%, #FB923C 50%, #FACC15 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+  padding-right: 0.12em;
+  margin-right: -0.06em;
+}
+
+.gradient-word {
+  display: inline-block;
+  background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+  padding-right: 0.18em;
+  margin-right: -0.1em;
+}
+
+[data-reveal] {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none !important;
+  }
+}
+
+.cta-pill-border {
+  padding: 1px;
+  background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
+  opacity: 0.35;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
 }
