@@ -55,6 +55,6 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
         tween.kill();
       };
     },
-    { scope: pillRef, dependencies: [reducedMotion] },
+    { dependencies: [reducedMotion] },
   );
 }

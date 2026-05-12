@@ -45,7 +45,7 @@ export function FloatingCta() {
         pulseTweenRef.current = null;
       };
     },
-    { scope: rootRef, dependencies: [reducedMotion] },
+    { dependencies: [reducedMotion] },
   );
 
   const rootStyle = {
