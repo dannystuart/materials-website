@@ -59,9 +59,9 @@ export function FloatingCta() {
       ref={rootRef}
       data-cta-root
       className="
-        fixed top-5 left-1/2 -translate-x-1/2 z-50
+        fixed top-4 md:top-5 left-1/2 -translate-x-1/2 z-50
         flex items-center
-        h-12 pl-4 pr-1.5
+        h-10 md:h-12 pl-3 md:pl-4 pr-1 md:pr-1.5
         rounded-full overflow-hidden
         bg-[rgba(8,8,12,0.72)]
         shadow-[0_10px_40px_rgba(0,0,0,0.5)]
@@ -78,7 +78,7 @@ export function FloatingCta() {
       />
 
       <nav aria-label="Buy" className="relative flex items-center gap-3">
-        <span className="text-[14px] font-medium tracking-normal text-white/85 select-none">
+        <span className="text-[13px] md:text-[14px] font-medium tracking-normal text-white/85 select-none whitespace-nowrap">
           Materials<sup className="text-[0.6em] align-super">1</sup> — Edition 1
         </span>
         <span aria-hidden="true" className="h-5 w-px bg-white/12" />
@@ -89,10 +89,11 @@ export function FloatingCta() {
           className="
             relative inline-flex items-center gap-1
             rounded-full bg-white text-[#0A0A0F]
-            px-4 py-[9px]
-            text-[14px] font-semibold
+            px-3 md:px-4 py-3 md:py-[9px] -my-1 md:my-0
+            text-[13px] md:text-[14px] font-semibold
             will-change-transform
             focus:outline-none
+            active:scale-[1.04] transition-transform duration-150
           "
         >
           <span>Buy</span>

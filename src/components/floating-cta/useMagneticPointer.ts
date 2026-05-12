@@ -55,6 +55,22 @@ export function useMagneticPointer({
       });
     };
 
+    const isCoarse = window.matchMedia("(pointer: coarse)").matches;
+    if (isCoarse) {
+      const onTap = (e: PointerEvent) => {
+        const rect = pill.getBoundingClientRect();
+        fireRipple(e.clientX - rect.left, e.clientY - rect.top, {
+          peakOpacity: 0.9,
+          peakRadiusPct: 1.4,
+          duration: 0.7,
+        });
+      };
+      pill.addEventListener("pointerdown", onTap);
+      return () => {
+        pill.removeEventListener("pointerdown", onTap);
+      };
+    }
+
     const target = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
     let arrowTarget = 0;
