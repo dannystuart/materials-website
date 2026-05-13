@@ -61,7 +61,7 @@ export function FloatingCta() {
       className="
         fixed top-4 md:top-5 left-1/2 -translate-x-1/2 z-50
         flex items-center
-        h-10 md:h-12 pl-3 md:pl-4 pr-1 md:pr-1.5
+        h-11 md:h-12 pl-3 md:pl-4 pr-1 md:pr-1.5
         rounded-full overflow-hidden
         bg-[rgba(8,8,12,0.72)]
         shadow-[0_10px_40px_rgba(0,0,0,0.5)]
@@ -87,14 +87,13 @@ export function FloatingCta() {
           href="#buy"
           data-cta-button
           className="
-            cta-focus-ring
+            cta-focus-ring cta-button
             relative inline-flex items-center gap-1
             rounded-full bg-white text-[#0A0A0F]
-            px-3 md:px-4 py-3 md:py-[9px] -my-1 md:my-0
+            px-3 md:px-4 min-h-[44px] md:min-h-0 md:py-[9px]
             text-[13px] md:text-[14px] font-semibold
             will-change-transform
             focus:outline-none
-            active:scale-[1.04] transition-transform duration-150
           "
         >
           <span>Buy</span>
