@@ -62,7 +62,7 @@ export function FloatingCta() {
         fixed top-4 md:top-5 left-1/2 -translate-x-1/2 z-50
         flex items-center
         h-11 md:h-12 pl-3 md:pl-4 pr-1 md:pr-1.5
-        rounded-full overflow-hidden
+        rounded-full
         bg-[rgba(8,8,12,0.72)]
         shadow-[0_10px_40px_rgba(0,0,0,0.5)]
         will-change-transform

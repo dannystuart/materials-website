@@ -121,6 +121,7 @@ body {
 }
 
 .cta-pill-border {
+  box-sizing: border-box;
   padding: 1px;
   background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
   opacity: 0.35;
