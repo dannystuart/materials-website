@@ -14,9 +14,6 @@ type Args = {
   reducedMotion: boolean;
 };
 
-const clamp = (v: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, v));
-
 export function useMagneticPointer({
   pillRef,
   rippleRef,
@@ -71,14 +68,6 @@ export function useMagneticPointer({
       };
     }
 
-    const target = { x: 0, y: 0 };
-    const current = { x: 0, y: 0 };
-    let arrowTarget = 0;
-    let arrowCurrent = 0;
-    let scaleTarget = 1;
-    let scaleCurrent = 1;
-    let rafId = 0;
-
     const onEnter = (e: PointerEvent) => {
       const rect = pill.getBoundingClientRect();
       fireRipple(e.clientX - rect.left, e.clientY - rect.top, {
@@ -97,16 +86,7 @@ export function useMagneticPointer({
       });
     };
 
-    const onMove = (e: PointerEvent) => {
-      const rect = button.getBoundingClientRect();
-      const bx = rect.left + rect.width / 2;
-      const by = rect.top + rect.height / 2;
-      target.x = clamp((e.clientX - bx) * 0.08, -4, 4);
-      target.y = clamp((e.clientY - by) * 0.08, -2, 2);
-    };
-
     const pillEnter = () => {
-      arrowTarget = 2;
       const border = borderRef.current;
       if (border) {
         gsap.to(border, {
@@ -122,17 +102,20 @@ export function useMagneticPointer({
         ease: "power2.out",
         overwrite: "auto",
       });
+      gsap.to(arrow, {
+        x: 3,
+        duration: 0.35,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
       pulseTweenRef.current?.pause();
     };
 
     const pillLeave = () => {
-      target.x = 0;
-      target.y = 0;
-      arrowTarget = 0;
       const border = borderRef.current;
       if (border) {
         gsap.to(border, {
-          opacity: 0.35,
+          opacity: 0.5,
           duration: 0.25,
           ease: "power2.out",
           overwrite: "auto",
@@ -147,13 +130,29 @@ export function useMagneticPointer({
         ease: "power2.out",
         overwrite: "auto",
       });
+      gsap.to(arrow, {
+        x: 0,
+        duration: 0.35,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
     };
 
     const buttonEnter = () => {
-      scaleTarget = 1.04;
+      gsap.to(button, {
+        scale: 1.045,
+        duration: 0.3,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
     };
     const buttonLeave = () => {
-      scaleTarget = 1;
+      gsap.to(button, {
+        scale: 1,
+        duration: 0.35,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
     };
 
     const onFocus = () => {
@@ -172,6 +171,12 @@ export function useMagneticPointer({
         ease: "power2.out",
         overwrite: "auto",
       });
+      gsap.to(arrow, {
+        x: 3,
+        duration: 0.35,
+        ease: "power3.out",
+        overwrite: "auto",
+      });
       pulseTweenRef.current?.pause();
     };
 
@@ -179,7 +184,7 @@ export function useMagneticPointer({
       const border = borderRef.current;
       if (border) {
         gsap.to(border, {
-          opacity: 0.35,
+          opacity: 0.5,
           duration: 0.25,
           ease: "power2.out",
           overwrite: "auto",
@@ -192,6 +197,12 @@ export function useMagneticPointer({
         "--cta-saturate": "140%",
         duration: 0.25,
         ease: "power2.out",
+        overwrite: "auto",
+      });
+      gsap.to(arrow, {
+        x: 0,
+        duration: 0.35,
+        ease: "power3.out",
         overwrite: "auto",
       });
     };
@@ -207,22 +218,10 @@ export function useMagneticPointer({
       );
     };
 
-    const loop = () => {
-      current.x += (target.x - current.x) * 0.18;
-      current.y += (target.y - current.y) * 0.18;
-      arrowCurrent += (arrowTarget - arrowCurrent) * 0.18;
-      scaleCurrent += (scaleTarget - scaleCurrent) * 0.18;
-      button.style.transform = `translate(${current.x.toFixed(2)}px, ${current.y.toFixed(2)}px) scale(${scaleCurrent.toFixed(4)})`;
-      arrow.style.transform = `translateX(${arrowCurrent.toFixed(2)}px)`;
-      rafId = requestAnimationFrame(loop);
-    };
-    rafId = requestAnimationFrame(loop);
-
     pill.addEventListener("pointerenter", onEnter);
     pill.addEventListener("pointerleave", onLeave);
     pill.addEventListener("pointerenter", pillEnter);
     pill.addEventListener("pointerleave", pillLeave);
-    pill.addEventListener("pointermove", onMove);
     button.addEventListener("pointerenter", buttonEnter);
     button.addEventListener("pointerleave", buttonLeave);
     button.addEventListener("focus", onFocus);
@@ -234,15 +233,13 @@ export function useMagneticPointer({
       pill.removeEventListener("pointerleave", onLeave);
       pill.removeEventListener("pointerenter", pillEnter);
       pill.removeEventListener("pointerleave", pillLeave);
-      pill.removeEventListener("pointermove", onMove);
       button.removeEventListener("pointerenter", buttonEnter);
       button.removeEventListener("pointerleave", buttonLeave);
       button.removeEventListener("focus", onFocus);
       button.removeEventListener("blur", onBlur);
       button.removeEventListener("keydown", onKeyActivate);
-      cancelAnimationFrame(rafId);
-      button.style.transform = "";
-      arrow.style.transform = "";
+      gsap.set(button, { clearProps: "transform,scale" });
+      gsap.set(arrow, { clearProps: "transform,x" });
     };
   }, [
     pillRef,

@@ -34,7 +34,7 @@ export function FloatingCta() {
       if (!border) return;
 
       pulseTweenRef.current = gsap.to(border, {
-        opacity: 0.45,
+        opacity: 0.7,
         duration: 2,
         ease: "sine.inOut",
         yoyo: true,
