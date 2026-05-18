@@ -57,6 +57,7 @@ export function PackCard({ pack }: Props) {
   const isPaid = pack.variant === "paid";
   const wrapRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
+  const boostRef = useRef(0);
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     const article = articleRef.current;
@@ -71,6 +72,12 @@ export function PackCard({ pack }: Props) {
     <div
       ref={wrapRef}
       onPointerMove={handlePointerMove}
+      onPointerEnter={() => {
+        boostRef.current = 1;
+      }}
+      onPointerLeave={() => {
+        boostRef.current = 0;
+      }}
       className="group relative isolate"
       data-pack-variant={pack.variant}
       style={
@@ -88,6 +95,7 @@ export function PackCard({ pack }: Props) {
         center={[1, 1]}
         radii={[0.55, 0.85, 1.25]}
         phaseOffset={isPaid ? 0 : 0.5}
+        boostRef={boostRef}
       />
 
       {/* Behind-card bloom — tracks cursor, blooms beyond the card edge */}

@@ -22,6 +22,8 @@ type Props = {
   center: [number, number];
   radii: [number, number, number];
   phaseOffset?: number;
+  /** When set to 1, halo brightens to ~1.5× resting. Lerps asymmetrically. */
+  boostRef?: React.MutableRefObject<number>;
 };
 
 const VERT = /* glsl */ `
@@ -146,6 +148,7 @@ export function PackHalo({
   center,
   radii,
   phaseOffset = 0,
+  boostRef,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -241,6 +244,7 @@ export function PackHalo({
     let raf = 0;
     let last = performance.now();
     let elapsed = 0;
+    let smoothedIntensity = restingIntensity;
 
     function frame(now: number) {
       raf = requestAnimationFrame(frame);
@@ -250,6 +254,13 @@ export function PackHalo({
 
       elapsed += dt;
       uniforms.uTime.value = elapsed;
+
+      const boost = boostRef?.current ?? 0;
+      const target = restingIntensity * (1 + 0.5 * boost);
+      // Asymmetric lerp — fast brighten on enter, slow decay on leave.
+      const lerpRate = boost > 0 ? 4 : 1.7;
+      smoothedIntensity += (target - smoothedIntensity) * Math.min(1, dt * lerpRate);
+      uniforms.uIntensity.value = smoothedIntensity;
 
       renderer.render(scene, camera);
     }
@@ -264,7 +275,7 @@ export function PackHalo({
       material.dispose();
       renderer.dispose();
     };
-  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, reduced]);
+  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, boostRef, reduced]);
 
   return (
     <div
