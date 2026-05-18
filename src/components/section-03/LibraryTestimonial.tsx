@@ -4,7 +4,7 @@ type Props = {
   className?: string;
 };
 
-function Star({ size = 13 }: { size?: number }) {
+export function Star({ size = 13 }: { size?: number }) {
   return (
     <svg
       width={size}

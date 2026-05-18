@@ -17,6 +17,8 @@ export type Pack = {
   inventory: PackInventoryItem[];
   ctaLabel: string;
   ctaHref: string;
+  rating: number;
+  reviewCount: number;
 };
 
 export const PAID_PACK: Pack = {
@@ -41,6 +43,8 @@ export const PAID_PACK: Pack = {
   ],
   ctaLabel: "Get Materials¹ — $9",
   ctaHref: "#buy",
+  rating: 5.0,
+  reviewCount: 8,
 };
 
 export const FREE_PACK: Pack = {
@@ -57,6 +61,8 @@ export const FREE_PACK: Pack = {
   ],
   ctaLabel: "Get Dark Materials",
   ctaHref: "https://dannystuart.gumroad.com/l/Dark-Materials-Abstract-Design-Textures",
+  rating: 4.9,
+  reviewCount: 8,
 };
 
 // Free reuses §02's palette family directly (blue → violet).

@@ -6,6 +6,7 @@ import type { Pack } from "./packData";
 import { PAID_HALO, FREE_HALO } from "./packData";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { clsx } from "@/lib/clsx";
+import { Star } from "@/components/section-03/LibraryTestimonial";
 
 const PAID_INNER_GLOW =
   "radial-gradient(95% 75% at 50% 105%, rgba(249,115,22,0.34) 0%, rgba(217,70,179,0.20) 38%, rgba(168,85,247,0.10) 60%, transparent 80%)";
@@ -130,13 +131,13 @@ export function PackCard({ pack }: Props) {
 
       <article
         ref={articleRef}
-        className="relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] group-hover:border-white/[0.18] motion-reduce:transform-none motion-reduce:transition-none"
+        className="relative rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] group-hover:border-white/[0.18] motion-reduce:transform-none motion-reduce:transition-none"
       >
         {/* Paid: inner orange glow baked into the card surface (rises from CTA) */}
         {isPaid ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 rounded-[20px]"
             style={{ background: PAID_INNER_GLOW }}
           />
         ) : null}
@@ -199,6 +200,26 @@ export function PackCard({ pack }: Props) {
             maskComposite: "exclude",
           }}
         />
+
+        {/* Rating pill — overlaps the top edge */}
+        <div
+          role="img"
+          aria-label={`Rated ${pack.rating.toFixed(1)} out of 5 from ${pack.reviewCount} reviews`}
+          className="absolute -top-3 right-6 inline-flex h-7 items-center gap-2 rounded-full border border-white/15 bg-[rgba(20,20,24,0.95)] px-3 text-[12px] font-medium leading-none shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+        >
+          <span
+            aria-hidden="true"
+            className="flex items-center gap-[2px] text-white/85"
+          >
+            <Star size={11} />
+            <Star size={11} />
+            <Star size={11} />
+            <Star size={11} />
+            <Star size={11} />
+          </span>
+          <span aria-hidden="true" className="text-white">{pack.rating.toFixed(1)}</span>
+          <span aria-hidden="true" className="text-white/55">· {pack.reviewCount} reviews</span>
+        </div>
       </article>
     </div>
   );
