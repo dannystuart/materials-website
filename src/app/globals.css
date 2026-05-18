@@ -113,6 +113,30 @@ body {
   will-change: transform, opacity;
 }
 
+.recipe-caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.92em;
+  margin-left: 0.06em;
+  vertical-align: -0.06em;
+  background: #ffffff;
+  animation: recipe-caret-blink 1s steps(1) infinite;
+}
+
+.recipe-caret--done {
+  animation: recipe-caret-blink 1.2s steps(1) infinite;
+  opacity: 0.7;
+}
+
+@keyframes recipe-caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-caret { animation: none; opacity: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] {
     opacity: 1;
@@ -124,7 +148,7 @@ body {
   box-sizing: border-box;
   padding: 1px;
   background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
-  opacity: 0.35;
+  opacity: 0.5;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
