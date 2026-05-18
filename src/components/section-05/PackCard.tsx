@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { PackHalo } from "./PackHalo";
 import type { Pack } from "./packData";
 import { PAID_HALO, FREE_HALO } from "./packData";
+import { useReducedMotion } from "@/components/hero/useReducedMotion";
 
 type Props = { pack: Pack };
 
@@ -58,8 +59,10 @@ export function PackCard({ pack }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const boostRef = useRef(0);
+  const reduced = useReducedMotion();
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (reduced) return;
     const article = articleRef.current;
     const wrap = wrapRef.current;
     if (!article || !wrap) return;
