@@ -275,7 +275,8 @@ export function PackHalo({
       material.dispose();
       renderer.dispose();
     };
-  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, boostRef, reduced]);
+    // boostRef is a stable RefObject — read inside the RAF loop, not a dep.
+  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, reduced]);
 
   return (
     <div
