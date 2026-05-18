@@ -27,23 +27,9 @@ function PaidCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="cta-focus-ring relative mt-8 inline-flex h-14 w-full items-center justify-center rounded-full bg-white px-6 text-[16px] font-bold tracking-[-0.005em] text-[#0A0A0F]"
+      className="cta-focus-ring relative mt-8 inline-flex h-14 w-full items-center justify-center rounded-full bg-white px-6 text-[16px] font-bold tracking-[-0.005em] text-[#0A0A0F] transition-shadow duration-200 ease-out hover:shadow-[0_4px_28px_rgba(255,255,255,0.28)] motion-reduce:transition-none"
     >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-full"
-        style={{
-          padding: "1px",
-          background:
-            "linear-gradient(90deg, rgba(249,115,22,0.9) 0%, rgba(217,70,179,0.9) 100%)",
-          WebkitMask:
-            "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-          mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-        }}
-      />
-      <span className="relative">{pack.ctaLabel}</span>
+      {pack.ctaLabel}
     </a>
   );
 }
@@ -52,7 +38,7 @@ function FreeCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="cta-focus-ring mt-8 inline-flex h-14 w-full items-center justify-center rounded-full border border-white/25 bg-transparent px-6 text-[16px] font-bold tracking-[-0.005em] text-white"
+      className="cta-focus-ring mt-8 inline-flex h-14 w-full items-center justify-center rounded-full border border-white/25 bg-transparent px-6 text-[16px] font-bold tracking-[-0.005em] text-white transition-colors duration-200 ease-out hover:border-white/55 hover:bg-white/[0.06] motion-reduce:transition-none"
     >
       {pack.ctaLabel}
     </a>
