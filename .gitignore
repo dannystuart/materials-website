@@ -42,3 +42,16 @@ next-env.d.ts
 
 # Source video masters and Figma exports (re-encoded outputs live in public/videos)
 assets-source/
+
+# Visual-reviewer artifacts (Playwright MCP logs + ad-hoc screenshot dumps)
+.playwright-mcp/
+desktop-*.png
+mobile-*.png
+# Root-level scratch screenshots from build/review cycles — keep out of git
+/cta-*.png
+/pitch-*.png
+/hero-*.png
+/cycle-*.png
+/cycle-mid-*.png
+/smoother-*.png
+/section-*.png
