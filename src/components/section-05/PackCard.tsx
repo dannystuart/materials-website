@@ -5,6 +5,10 @@ import { PackHalo } from "./PackHalo";
 import type { Pack } from "./packData";
 import { PAID_HALO, FREE_HALO } from "./packData";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
+import { clsx } from "@/lib/clsx";
+
+const PAID_STATIC_EDGE =
+  "linear-gradient(135deg, rgba(249,115,22,0.7) 0%, rgba(217,70,179,0.55) 55%, rgba(168,85,247,0.45) 100%)";
 
 type Props = { pack: Pack };
 
@@ -22,7 +26,7 @@ function PaidCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="cta-focus-ring relative mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-[14px] font-semibold text-[#0A0A0F]"
+      className="cta-focus-ring relative mt-8 inline-flex h-14 w-full items-center justify-center rounded-full bg-white px-6 text-[16px] font-bold tracking-[-0.005em] text-[#0A0A0F]"
     >
       <span
         aria-hidden="true"
@@ -47,7 +51,7 @@ function FreeCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="cta-focus-ring mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-transparent px-5 text-[14px] font-semibold text-white"
+      className="cta-focus-ring mt-8 inline-flex h-14 w-full items-center justify-center rounded-full border border-white/25 bg-transparent px-6 text-[16px] font-bold tracking-[-0.005em] text-white"
     >
       {pack.ctaLabel}
     </a>
@@ -93,13 +97,26 @@ export function PackCard({ pack }: Props) {
       <PackHalo
         className="absolute -inset-[35%] -z-10"
         palette={isPaid ? PAID_HALO : FREE_HALO}
-        restingIntensity={isPaid ? 0.6 : 0.3}
+        restingIntensity={isPaid ? 0.95 : 0.3}
         viewBox={[2, 2]}
         center={[1, 1]}
         radii={[0.55, 0.85, 1.25]}
         phaseOffset={isPaid ? 0 : 0.5}
         boostRef={boostRef}
       />
+
+      {/* Paid: faint always-on bloom behind the card (lifts pre-hover) */}
+      {isPaid ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-16 -z-[6]"
+          style={{
+            background:
+              "radial-gradient(60% 60% at 50% 50%, rgba(249,115,22,0.32), rgba(168,85,247,0.18) 45%, rgba(249,115,22,0) 70%)",
+            filter: "blur(40px)",
+          }}
+        />
+      ) : null}
 
       {/* Behind-card bloom — tracks cursor, blooms beyond the card edge */}
       <div
@@ -113,8 +130,30 @@ export function PackCard({ pack }: Props) {
 
       <article
         ref={articleRef}
-        className="relative rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] group-hover:border-white/[0.18] motion-reduce:transform-none motion-reduce:transition-none"
+        className={clsx(
+          "relative rounded-[20px] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] motion-reduce:transform-none motion-reduce:transition-none",
+          isPaid
+            ? "border border-transparent"
+            : "border border-white/[0.07] group-hover:border-white/[0.18]",
+        )}
       >
+        {/* Paid: always-on iridescent border (orange → magenta → violet) */}
+        {isPaid ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-[20px]"
+            style={{
+              padding: "1px",
+              background: PAID_STATIC_EDGE,
+              WebkitMask:
+                "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+              mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+              WebkitMaskComposite: "xor",
+              maskComposite: "exclude",
+            }}
+          />
+        ) : null}
+
         <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
           {pack.catalogHeader}
         </div>
@@ -138,17 +177,23 @@ export function PackCard({ pack }: Props) {
         </div>
 
         <ul className="mt-8 flex flex-col gap-2">
-          {pack.inventory.map((item) => (
-            <li
-              key={item.text}
-              className="flex items-start gap-3 text-[14px] leading-snug text-white/85"
-            >
-              <span aria-hidden="true" className="shrink-0">
-                {item.emoji}
-              </span>
-              <span>{item.text}</span>
-            </li>
-          ))}
+          {pack.inventory.map((item, i) => {
+            const dividerAbove = isPaid && (i === 3 || i === 6);
+            return (
+              <li
+                key={item.text}
+                className={clsx(
+                  "flex items-start gap-3 text-[14px] leading-snug text-white/85",
+                  dividerAbove && "mt-2 border-t border-white/[0.08] pt-3",
+                )}
+              >
+                <span aria-hidden="true" className="shrink-0">
+                  {item.emoji}
+                </span>
+                <span>{item.text}</span>
+              </li>
+            );
+          })}
         </ul>
 
         {isPaid ? <PaidCta pack={pack} /> : <FreeCta pack={pack} />}
