@@ -12,7 +12,11 @@ export function SectionCloseDesktop() {
           id="close-heading"
           className="font-display text-[56px] font-semibold leading-[1.15] tracking-[-0.0334em]"
         >
-          Two ways in.
+          Two ways{" "}
+          <span className="bg-[linear-gradient(90deg,#A855F7_0%,#F97316_100%)] bg-clip-text text-transparent">
+            in
+          </span>
+          .
         </h2>
       </div>
 

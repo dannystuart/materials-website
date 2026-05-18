@@ -11,7 +11,11 @@ export function SectionCloseMobile() {
         id="close-heading-m"
         className="font-display text-[40px] font-semibold leading-[1.15] tracking-[-0.025em]"
       >
-        Two ways in.
+        Two ways{" "}
+        <span className="bg-[linear-gradient(90deg,#A855F7_0%,#F97316_100%)] bg-clip-text text-transparent">
+          in
+        </span>
+        .
       </h2>
 
       <div className="mt-12 flex flex-col gap-12">
