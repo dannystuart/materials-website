@@ -1,14 +1,49 @@
+"use client";
+
+import { useRef } from "react";
 import { PackHalo } from "./PackHalo";
 import type { Pack } from "./packData";
 import { PAID_HALO, FREE_HALO } from "./packData";
 
 type Props = { pack: Pack };
 
+const PAID_BLOOM =
+  "radial-gradient(260px circle at calc(var(--mx) + 80px) calc(var(--my) + 80px), rgba(249,115,22,0.55), rgba(168,85,247,0.18) 40%, rgba(249,115,22,0) 65%)";
+const FREE_BLOOM =
+  "radial-gradient(260px circle at calc(var(--mx) + 80px) calc(var(--my) + 80px), rgba(83,149,237,0.6), rgba(168,85,247,0.18) 40%, rgba(83,149,237,0) 65%)";
+
+const PAID_EDGE =
+  "radial-gradient(200px circle at var(--mx) var(--my), rgba(255,255,255,0.95), rgba(255,180,140,0.55) 35%, transparent 65%)";
+const FREE_EDGE =
+  "radial-gradient(200px circle at var(--mx) var(--my), rgba(255,255,255,0.95), rgba(140,180,255,0.55) 35%, transparent 65%)";
+
 export function PackCard({ pack }: Props) {
   const isPaid = pack.variant === "paid";
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const articleRef = useRef<HTMLElement>(null);
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const article = articleRef.current;
+    const wrap = wrapRef.current;
+    if (!article || !wrap) return;
+    const rect = article.getBoundingClientRect();
+    wrap.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    wrap.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  }
 
   return (
-    <div className="relative isolate" data-pack-variant={pack.variant}>
+    <div
+      ref={wrapRef}
+      onPointerMove={handlePointerMove}
+      className="group relative isolate"
+      data-pack-variant={pack.variant}
+      style={
+        {
+          "--mx": "50%",
+          "--my": "50%",
+        } as React.CSSProperties
+      }
+    >
       <PackHalo
         className="absolute -inset-[35%] -z-10"
         palette={isPaid ? PAID_HALO : FREE_HALO}
@@ -19,16 +54,29 @@ export function PackCard({ pack }: Props) {
         phaseOffset={isPaid ? 0 : 0.5}
       />
 
-      <article className="relative rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white">
+      {/* Behind-card bloom — tracks cursor, blooms beyond the card edge */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-20 -z-[5] opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none"
+        style={{
+          background: isPaid ? PAID_BLOOM : FREE_BLOOM,
+          filter: "blur(46px)",
+        }}
+      />
+
+      <article
+        ref={articleRef}
+        className="relative rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] group-hover:border-white/[0.18] motion-reduce:transform-none motion-reduce:transition-none"
+      >
         <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
           {pack.catalogHeader}
         </div>
 
         <div className="mt-6">
-          <h3 className="text-[32px] font-semibold leading-tight tracking-[-0.01em]">
+          <h3 className="text-[32px] font-semibold leading-tight tracking-[-0.01em] text-white/85 transition-colors duration-500 ease-out group-hover:text-white">
             {pack.name}
           </h3>
-          <p className="mt-2 text-[14px] leading-snug text-white/65">
+          <p className="mt-2 text-[14px] leading-snug text-white/65 transition-colors duration-500 ease-out group-hover:text-white/90">
             {pack.tagline}
           </p>
         </div>
@@ -66,6 +114,21 @@ export function PackCard({ pack }: Props) {
         >
           {pack.ctaLabel}
         </a>
+
+        {/* Lit edge — radial highlight masked to a 1px border, tracks cursor */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-[20px] opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none"
+          style={{
+            padding: "1px",
+            background: isPaid ? PAID_EDGE : FREE_EDGE,
+            WebkitMask:
+              "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+            mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+          }}
+        />
       </article>
     </div>
   );
