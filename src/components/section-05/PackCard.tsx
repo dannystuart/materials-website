@@ -22,7 +22,7 @@ function PaidCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="relative mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-[14px] font-semibold text-[#0A0A0F]"
+      className="cta-focus-ring relative mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-[14px] font-semibold text-[#0A0A0F]"
     >
       <span
         aria-hidden="true"
@@ -47,7 +47,7 @@ function FreeCta({ pack }: { pack: Pack }) {
   return (
     <a
       href={pack.ctaHref}
-      className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-transparent px-5 text-[14px] font-semibold text-white"
+      className="cta-focus-ring mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-transparent px-5 text-[14px] font-semibold text-white"
     >
       {pack.ctaLabel}
     </a>
