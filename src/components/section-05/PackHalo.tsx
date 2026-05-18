@@ -93,9 +93,7 @@ const FRAG = /* glsl */ `
       float slot = 1.0 / float(${RING_COUNT});
       float local = mod(phase - ringPhase + 1.0, 1.0);
       float riseEnd = slot * 0.22;
-      // Pulse disabled until Task 7 — gate with 0.0 multiplier.
-      float pulse = 0.0 *
-                    smoothstep(0.0, riseEnd, local) *
+      float pulse = smoothstep(0.0, riseEnd, local) *
                     (1.0 - smoothstep(riseEnd, slot, local));
       pulse *= (1.0 - uReduced);
 
