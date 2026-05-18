@@ -17,6 +17,42 @@ const PAID_EDGE =
 const FREE_EDGE =
   "radial-gradient(200px circle at var(--mx) var(--my), rgba(255,255,255,0.95), rgba(140,180,255,0.55) 35%, transparent 65%)";
 
+function PaidCta({ pack }: { pack: Pack }) {
+  return (
+    <a
+      href={pack.ctaHref}
+      className="relative mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-[14px] font-semibold text-[#0A0A0F]"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 rounded-full"
+        style={{
+          padding: "1px",
+          background:
+            "linear-gradient(90deg, rgba(249,115,22,0.9) 0%, rgba(217,70,179,0.9) 100%)",
+          WebkitMask:
+            "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+      <span className="relative">{pack.ctaLabel}</span>
+    </a>
+  );
+}
+
+function FreeCta({ pack }: { pack: Pack }) {
+  return (
+    <a
+      href={pack.ctaHref}
+      className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-transparent px-5 text-[14px] font-semibold text-white"
+    >
+      {pack.ctaLabel}
+    </a>
+  );
+}
+
 export function PackCard({ pack }: Props) {
   const isPaid = pack.variant === "paid";
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -104,16 +140,7 @@ export function PackCard({ pack }: Props) {
           ))}
         </ul>
 
-        <a
-          href={pack.ctaHref}
-          className={
-            isPaid
-              ? "mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-[14px] font-semibold text-[#0A0A0F]"
-              : "mt-8 inline-flex h-12 w-full items-center justify-center rounded-full border border-white/20 bg-transparent px-5 text-[14px] font-semibold text-white"
-          }
-        >
-          {pack.ctaLabel}
-        </a>
+        {isPaid ? <PaidCta pack={pack} /> : <FreeCta pack={pack} />}
 
         {/* Lit edge — radial highlight masked to a 1px border, tracks cursor */}
         <div
