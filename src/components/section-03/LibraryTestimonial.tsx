@@ -1,0 +1,89 @@
+import { clsx } from "@/lib/clsx";
+
+type Props = {
+  className?: string;
+};
+
+function Star({ size = 13 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 2.6 14.85 8.7l6.65.65-4.95 4.55 1.4 6.55L12 17.1l-5.95 3.35 1.4-6.55L2.5 9.35l6.65-.65L12 2.6Z" />
+    </svg>
+  );
+}
+
+export function LibraryTestimonial({ className }: Props) {
+  return (
+    <figure
+      className={clsx(
+        "flex h-full flex-col justify-end",
+        className,
+      )}
+    >
+      <div
+        className="mb-5 flex items-center gap-[3px] text-white/80"
+        role="img"
+        aria-label="Rated 5 out of 5"
+      >
+        <Star size={14} />
+        <Star size={14} />
+        <Star size={14} />
+        <Star size={14} />
+        <Star size={14} />
+        <span
+          aria-hidden="true"
+          className="ml-2 font-display font-medium uppercase tracking-[0.22em] text-white/55"
+          style={{ fontSize: "12px" }}
+        >
+          5.0
+        </span>
+      </div>
+      <blockquote
+        className="font-display text-white"
+        style={{
+          fontSize: "26px",
+          lineHeight: 1.35,
+          letterSpacing: "-0.4px",
+          fontWeight: 400,
+        }}
+      >
+        <span className="text-white/55">&ldquo;</span>
+        Every one of the materials in this pack are{" "}
+        <span className="font-semibold text-white">
+          pristine. Mesmerizing all on their own.
+        </span>{" "}
+        <span className="text-white/65">
+          And even more excellent is when it&rsquo;s used as a style reference
+          for further prompting and personalizing. Worth every penny.
+        </span>
+        <span className="text-white/55">&rdquo;</span>
+      </blockquote>
+
+      <figcaption
+        className="mt-8 flex items-center gap-3 font-display"
+        style={{ fontSize: "11px" }}
+      >
+        <span className="h-px w-8 bg-white/35" aria-hidden="true" />
+        <span
+          className="font-medium uppercase tracking-[0.22em] text-white/70"
+        >
+          MPH Sound
+        </span>
+        <span className="text-white/35" aria-hidden="true">
+          ·
+        </span>
+        <span
+          className="font-medium uppercase tracking-[0.22em] text-white/45"
+        >
+          Verified Buyer
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
