@@ -7,8 +7,8 @@ import { PAID_HALO, FREE_HALO } from "./packData";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { clsx } from "@/lib/clsx";
 
-const PAID_STATIC_EDGE =
-  "linear-gradient(135deg, rgba(249,115,22,0.7) 0%, rgba(217,70,179,0.55) 55%, rgba(168,85,247,0.45) 100%)";
+const PAID_INNER_GLOW =
+  "radial-gradient(95% 75% at 50% 105%, rgba(249,115,22,0.34) 0%, rgba(217,70,179,0.20) 38%, rgba(168,85,247,0.10) 60%, transparent 80%)";
 
 type Props = { pack: Pack };
 
@@ -130,35 +130,22 @@ export function PackCard({ pack }: Props) {
 
       <article
         ref={articleRef}
-        className={clsx(
-          "relative rounded-[20px] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] motion-reduce:transform-none motion-reduce:transition-none",
-          isPaid
-            ? "border border-transparent"
-            : "border border-white/[0.07] group-hover:border-white/[0.18]",
-        )}
+        className="relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[rgba(14,14,16,0.92)] p-8 font-display text-white transition-transform duration-[1100ms] will-change-transform [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.055] group-hover:border-white/[0.18] motion-reduce:transform-none motion-reduce:transition-none"
       >
-        {/* Paid: always-on iridescent border (orange → magenta → violet) */}
+        {/* Paid: inner orange glow baked into the card surface (rises from CTA) */}
         {isPaid ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-[20px]"
-            style={{
-              padding: "1px",
-              background: PAID_STATIC_EDGE,
-              WebkitMask:
-                "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-              mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-            }}
+            className="pointer-events-none absolute inset-0"
+            style={{ background: PAID_INNER_GLOW }}
           />
         ) : null}
 
-        <div className="text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
+        <div className="relative text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
           {pack.catalogHeader}
         </div>
 
-        <div className="mt-6">
+        <div className="relative mt-6">
           <h3 className="text-[32px] font-semibold leading-tight tracking-[-0.01em] text-white/85 transition-colors duration-500 ease-out group-hover:text-white">
             {pack.name}
           </h3>
@@ -167,7 +154,7 @@ export function PackCard({ pack }: Props) {
           </p>
         </div>
 
-        <div className="mt-8">
+        <div className="relative mt-8">
           <div className="text-[44px] font-semibold leading-none">
             {pack.price}
           </div>
@@ -176,7 +163,7 @@ export function PackCard({ pack }: Props) {
           ) : null}
         </div>
 
-        <ul className="mt-8 flex flex-col gap-2">
+        <ul className="relative mt-8 flex flex-col gap-2">
           {pack.inventory.map((item, i) => {
             const dividerAbove = isPaid && (i === 3 || i === 6);
             return (
