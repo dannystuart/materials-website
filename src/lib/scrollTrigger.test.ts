@@ -13,7 +13,11 @@ vi.mock("@/lib/gsap", () => ({
   },
 }));
 
-import { __resetDeferGsapQueueForTests, deferGsap } from "./scrollTrigger";
+import {
+  __resetDeferGsapQueueForTests,
+  deferGsap,
+  whenDeferredGsapDrained,
+} from "./scrollTrigger";
 
 describe("deferGsap serial queue", () => {
   beforeEach(() => {
@@ -86,5 +90,48 @@ describe("deferGsap serial queue", () => {
       vi.advanceTimersToNextFrame();
       expect(calls).toEqual(["A"]);
     });
+  });
+});
+
+describe("whenDeferredGsapDrained", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockContext.mockClear();
+    mockRevert.mockClear();
+    document.documentElement.classList.remove("scroll-restoring");
+    __resetDeferGsapQueueForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("resolves immediately when nothing is queued", async () => {
+    const promise = whenDeferredGsapDrained();
+    vi.advanceTimersToNextFrame();
+    await expect(promise).resolves.toBeUndefined();
+  });
+
+  it("waits for every pending setup to fire before resolving", async () => {
+    const fired: string[] = [];
+    deferGsap(() => fired.push("A"));
+    deferGsap(() => fired.push("B"));
+
+    let drained = false;
+    const promise = whenDeferredGsapDrained().then(() => {
+      drained = true;
+    });
+
+    vi.advanceTimersToNextFrame();
+    expect(fired).toEqual(["A"]);
+    expect(drained).toBe(false);
+
+    vi.advanceTimersToNextFrame();
+    expect(fired).toEqual(["A", "B"]);
+
+    // One more frame for the drain check to observe the empty queue.
+    vi.advanceTimersToNextFrame();
+    await promise;
+    expect(drained).toBe(true);
   });
 });
