@@ -90,12 +90,24 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       evaluate();
     };
 
+    // The hero pin attaches after this effect runs (waits on video metadata
+    // + the deferGsap queue), so the initial threshold is computed against
+    // the un-pinned page — pitch is at ~viewportHeight, threshold drops to
+    // ~0.15 * viewportHeight, and the CTA fades in almost immediately on
+    // first scroll. Watch the document height and recompute on growth.
+    const docHeightObserver = new ResizeObserver(() => {
+      computeThreshold();
+      evaluate();
+    });
+    docHeightObserver.observe(document.documentElement);
+
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
+      docHeightObserver.disconnect();
       activeTween?.kill();
     };
   }, [pillRef, reducedMotion]);
