@@ -13,7 +13,7 @@ vi.mock("@/lib/gsap", () => ({
   },
 }));
 
-import { deferGsap } from "./scrollTrigger";
+import { __resetDeferGsapQueueForTests, deferGsap } from "./scrollTrigger";
 
 describe("deferGsap serial queue", () => {
   beforeEach(() => {
@@ -21,6 +21,7 @@ describe("deferGsap serial queue", () => {
     mockContext.mockClear();
     mockRevert.mockClear();
     document.documentElement.classList.remove("scroll-restoring");
+    __resetDeferGsapQueueForTests();
   });
 
   afterEach(() => {
