@@ -5,8 +5,6 @@ import {
 import { PitchOrbits } from "./PitchOrbits";
 import type { PointerTargetRef } from "./useSectionPointer";
 
-const STROKE = "rgba(167,196,232,0.18)";
-
 const WARM = "rgb(255,160,80)";
 const COOL = "rgb(107,173,255)";
 const HOT = "rgb(240,246,255)";

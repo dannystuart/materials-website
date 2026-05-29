@@ -18,7 +18,6 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
       if (!section || !video) return;
 
       const setup = () => {
-        const isTouch = window.matchMedia("(pointer: coarse)").matches;
         ScrollTrigger.config({ ignoreMobileResize: true });
 
         const tl = gsap.timeline({
