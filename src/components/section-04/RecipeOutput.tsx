@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { RecipeTile } from "./RecipeTile";
 import type { RecipeMaterial } from "./materials";
 
@@ -18,11 +18,16 @@ export function RecipeOutput({ material, variant = "desktop" }: Props) {
   const [layerA, setLayerA] = useState<RecipeMaterial>(material);
   const [layerB, setLayerB] = useState<RecipeMaterial>(material);
   const [active, setActive] = useState<"A" | "B">("A");
-  const seenIdRef = useRef<string>(material.id);
+  const [seenId, setSeenId] = useState<string>(material.id);
 
-  useEffect(() => {
-    if (material.id === seenIdRef.current) return;
-    seenIdRef.current = material.id;
+  // Derive the cross-fade swap from the `material` prop during render — the
+  // documented "adjust state during render" pattern, tracking the last-seen
+  // material id in state. When the prop changes, load the next image into the
+  // inactive layer and flip `active`; React re-renders immediately without
+  // committing the intermediate paint, so the double-buffered fade is
+  // identical to the prior effect-based version.
+  if (material.id !== seenId) {
+    setSeenId(material.id);
     if (active === "A") {
       setLayerB(material);
       setActive("B");
@@ -30,7 +35,7 @@ export function RecipeOutput({ material, variant = "desktop" }: Props) {
       setLayerA(material);
       setActive("A");
     }
-  }, [material, active]);
+  }
 
   const transition = "opacity 0.85s cubic-bezier(0.45, 0, 0.25, 1)";
 

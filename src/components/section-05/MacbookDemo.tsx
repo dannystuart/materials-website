@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useReducedMotion } from "../hero/useReducedMotion";
 import { useMacbookScrub } from "./useMacbookScrub";
 
@@ -15,6 +15,17 @@ export function MacbookDemo({ variant }: Props) {
   const [overlayShown, setOverlayShown] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
 
+  // Reduced motion shows the overlay (the play button) instead of the scrubbed
+  // demo. Seed it during render — the documented "adjust state during render"
+  // pattern — tracking the previous `reduced` value in state so the overlay is
+  // forced on whenever `reduced` flips true (including on first render, since
+  // the tracker starts at false). Handlers own the false→true→false toggles.
+  const [prevReduced, setPrevReduced] = useState(false);
+  if (prevReduced !== reduced) {
+    setPrevReduced(reduced);
+    if (reduced) setOverlayShown(true);
+  }
+
   const handleScrubComplete = useCallback(() => {
     setHasPlayed(true);
   }, []);
@@ -25,10 +36,6 @@ export function MacbookDemo({ variant }: Props) {
     enabled: !reduced,
     onScrubComplete: handleScrubComplete,
   });
-
-  useEffect(() => {
-    if (reduced) setOverlayShown(true);
-  }, [reduced]);
 
   const handleEnded = useCallback(() => {
     setOverlayShown(true);
