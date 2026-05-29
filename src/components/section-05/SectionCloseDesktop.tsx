@@ -1,13 +1,17 @@
 import { PackCard } from "./PackCard";
+import { CloseTestimonial } from "./CloseTestimonial";
+import { MacbookDemo } from "./MacbookDemo";
 import { PAID_PACK, FREE_PACK } from "./packData";
 
 export function SectionCloseDesktop() {
   return (
     <section
-      className="relative bg-hero-bg py-32 text-white"
+      className="relative overflow-x-clip bg-hero-bg pb-20 text-white"
       aria-labelledby="close-heading"
     >
-      <div className="px-12 min-[1600px]:px-[12vw] min-[2200px]:px-[20vw]">
+      <MacbookDemo variant="desktop" />
+
+      <div className="mt-32 px-12 min-[1600px]:px-[12vw] min-[2200px]:px-[20vw]">
         <h2
           id="close-heading"
           className="text-center font-display text-[56px] font-semibold leading-[1.15] tracking-[-0.0334em]"
@@ -23,6 +27,10 @@ export function SectionCloseDesktop() {
         <div className="w-[440px] self-start">
           <PackCard pack={FREE_PACK} />
         </div>
+      </div>
+
+      <div className="mt-32 px-12 min-[1600px]:px-[12vw] min-[2200px]:px-[20vw]">
+        <CloseTestimonial />
       </div>
     </section>
   );

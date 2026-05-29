@@ -42,7 +42,8 @@ export const PAID_PACK: Pack = {
     { emoji: "🙋‍♂️", text: "Support" },
   ],
   ctaLabel: "Get Materials¹ — $9",
-  ctaHref: "#buy",
+  ctaHref:
+    "https://dannystuart.gumroad.com/l/Materials-Edition-1?utm_source=materials-website&utm_medium=homepage&utm_campaign=materials-edition-1",
   rating: 5.0,
   reviewCount: 8,
 };
@@ -60,7 +61,8 @@ export const FREE_PACK: Pack = {
     { emoji: "⚡️", text: "Free updates" },
   ],
   ctaLabel: "Get Dark Materials",
-  ctaHref: "https://dannystuart.gumroad.com/l/Dark-Materials-Abstract-Design-Textures",
+  ctaHref:
+    "https://dannystuart.gumroad.com/l/Dark-Materials-Abstract-Design-Textures?utm_source=materials-website&utm_medium=homepage&utm_campaign=dark-materials",
   rating: 4.9,
   reviewCount: 8,
 };
