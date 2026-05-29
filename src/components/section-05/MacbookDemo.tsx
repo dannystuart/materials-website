@@ -62,6 +62,38 @@ export function MacbookDemo({ variant }: Props) {
       className="relative w-full bg-hero-bg"
       data-macbook-demo
     >
+      <div
+        data-demo-caption={reduced ? "static" : "motion"}
+        aria-hidden={!reduced || undefined}
+        className={
+          reduced
+            ? "pointer-events-none px-6 py-4 text-center"
+            : "pointer-events-none relative z-10 px-6 py-4 text-center will-change-transform"
+        }
+        style={reduced ? undefined : { transformOrigin: "top center" }}
+      >
+        <span
+          data-demo-caption-eyebrow
+          className="font-display text-[11px] font-medium uppercase tracking-[0.28em] text-white/70"
+        >
+          APPLIED
+        </span>
+        <p
+          data-demo-caption-line
+          className="mt-1 font-display text-2xl font-semibold leading-[1.15] tracking-[-0.0334em] text-white md:text-[28px]"
+        >
+          {CAPTION_WORDS.map((word, i) => (
+            <span
+              key={i}
+              data-demo-caption-word
+              className="mr-[0.25em] inline-block"
+            >
+              {word}
+            </span>
+          ))}
+        </p>
+      </div>
+
       <div className="relative aspect-[2/1] w-full overflow-hidden">
         <video
           ref={videoRef}
@@ -77,37 +109,6 @@ export function MacbookDemo({ variant }: Props) {
             <source key={s.src} src={s.src} type={s.type} />
           ))}
         </video>
-
-        <div
-          data-demo-caption={reduced ? "static" : "motion"}
-          aria-hidden={!reduced || undefined}
-          className={
-            reduced
-              ? "pointer-events-none absolute left-6 top-6 z-10 flex flex-col gap-2 text-left"
-              : "pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-6 text-center"
-          }
-        >
-          <span
-            data-demo-caption-eyebrow
-            className="font-display text-[11px] font-medium uppercase tracking-[0.28em] text-white/70"
-          >
-            APPLIED
-          </span>
-          <p
-            data-demo-caption-line
-            className="font-display text-3xl font-semibold leading-[1.15] tracking-[-0.0334em] text-white md:text-[40px]"
-          >
-            {CAPTION_WORDS.map((word, i) => (
-              <span
-                key={i}
-                data-demo-caption-word
-                className="mr-[0.25em] inline-block"
-              >
-                {word}
-              </span>
-            ))}
-          </p>
-        </div>
 
         <div
           className={`absolute inset-0 flex flex-col items-center justify-center gap-6 bg-black/40 transition-opacity duration-300 ${

@@ -56,4 +56,20 @@ describe("MacbookDemo caption", () => {
         ?.getAttribute("data-demo-caption"),
     ).toBe("static");
   });
+
+  it("renders the caption as a sibling above the video frame, not inside it", () => {
+    reducedMock.mockReturnValue(false);
+    const { container } = render(<MacbookDemo variant="desktop" />);
+    const block = container.querySelector("[data-macbook-demo]");
+    const caption = container.querySelector("[data-demo-caption]");
+    const frame = block?.querySelector("video")?.closest(".overflow-hidden");
+    expect(caption).not.toBeNull();
+    expect(frame).not.toBeNull();
+    // caption must NOT be nested inside the video frame
+    expect(frame?.contains(caption!)).toBe(false);
+    // caption must be a direct child of the block, before the video frame
+    expect(caption?.parentElement).toBe(block);
+    const kids = [...(block?.children ?? [])];
+    expect(kids.indexOf(caption!)).toBeLessThan(kids.indexOf(frame!));
+  });
 });
