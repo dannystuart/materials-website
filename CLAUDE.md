@@ -86,7 +86,11 @@ This project is desktop-led. **1440px is the primary canvas.** Build for desktop
 
 ## Verification protocol
 
-After ANY UI build or change, invoke the `visual-reviewer` subagent before claiming the work is done. The reviewer hits a running dev server, takes screenshots at 1440 and 375 (desktop first), writes a report, and recommends fixes. **Loop until the report is PASS at both viewports.** No "done" without it.
+**Always smoke-test UI changes yourself first.** Load the running dev server and scroll/exercise the section in the browser before claiming done. This first-pass sanity check is non-negotiable.
+
+**Desktop / `visual-reviewer`: ON REQUEST ONLY.** Do NOT auto-run `visual-reviewer` after every task. Dan reviews desktop himself (he spots issues in seconds) and triggers it manually when a task warrants it or at a project checkpoint. Its real value here is *static composition + cross-component collisions* (e.g. a heading colliding with the fixed CTA pill), not scroll-driven motion timing — it can't hold a frame mid-scrub and falls back to re-reading code. Invoke it only when Dan asks or names a checkpoint.
+
+**Mobile / `mobile-reviewer`: AUTOMATIC.** After ANY task that creates or reworks the mobile view (responsive layout/styling below `lg`, mobile-only variants, mobile motion), invoke the `mobile-reviewer` subagent before claiming done. It reviews mobile aesthetics + best practices at 375 (and 390), writes a report, and recommends fixes. Act on its clear findings; surface design judgments to Dan. **Mobile is the reviewer's gate; desktop is Dan's.**
 
 ## What NOT to do
 

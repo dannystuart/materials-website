@@ -1,6 +1,6 @@
 ---
 name: visual-reviewer
-description: MUST BE USED after any UI build or change. Visually verifies work against design intent at multiple viewports. Tests desktop FIRST (this project is desktop-led). Does not edit code — writes a structured review report.
+description: Use ON REQUEST ONLY (when Dan asks, or at a project checkpoint) — NOT automatically per task. Visually verifies desktop work against design intent at multiple viewports. Tests desktop FIRST (this project is desktop-led). Strongest at static composition and cross-component collisions; weak at scroll-driven motion timing. Does not edit code — writes a structured review report.
 tools: mcp__playwright__browser_navigate, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_resize, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_console_messages, Read, Write
 model: sonnet
 ---
