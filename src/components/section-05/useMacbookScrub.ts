@@ -52,24 +52,41 @@ export function useMacbookScrub({
           cbRef.current?.();
         };
 
-        // Beat 1 — reveal the caption hero-style as the block approaches the
-        // pin point. Created before the pin timeline so it sits first in this
-        // same deferGsap block.
+        // Beat 1 + Beat 2 — the caption lives in normal flow ABOVE the video
+        // frame; its untransformed position is its rest spot. Created before
+        // the pin timeline so they sit first in this same deferGsap block.
         if (caption && words && words.length) {
-          // Hidden initial state — set here, NOT via data-reveal (global CSS
-          // [data-reveal]{opacity:0} would hide it permanently). Matches the
-          // hero word-reveal 1:1.
+          // Reveal transform: scale up to ~2x (line 28px -> ~56px) and
+          // translate DOWN so the caption overlays the vertical centre of the
+          // video. Measured, not hard-coded, so it stays centred responsively.
+          const REVEAL_SCALE = 2;
+          const captionH = caption.offsetHeight;
+          const videoH = video.getBoundingClientRect().height || block.offsetHeight;
+          // GSAP scales about the element centre, so a y-translation moves the
+          // centre by exactly y regardless of scale. The caption sits directly
+          // above the video (its natural top is the block top, the video starts
+          // at the caption's bottom), so the gap from the caption's natural
+          // centre to the video's vertical centre is captionH/2 + videoH/2.
+          const revealY = captionH / 2 + videoH / 2;
+
+          if (isDesktop) {
+            // Container starts in the big + over-video state (set here, never
+            // via data-reveal). Beat 2 animates it back to identity (= rest).
+            gsap.set(caption, { y: revealY, scale: REVEAL_SCALE });
+          }
+          // Words/eyebrow hidden for the de-blur reveal (Beat 1).
           gsap.set([eyebrow, ...words], {
             opacity: 0,
             y: 14,
             filter: "blur(10px)",
           });
 
+          // Beat 1 — scrubbed per-word reveal, completes as block hits centre.
           const revealTl = gsap.timeline({
             scrollTrigger: {
               trigger: block,
-              start: "top bottom", // block enters from viewport bottom
-              end: "top top", // ...up to the pin point
+              start: "top bottom",
+              end: "top center",
               scrub: 0.3,
             },
           });
@@ -98,6 +115,17 @@ export function useMacbookScrub({
               },
               0.15,
             );
+
+          // Beat 2 — one-way rise + shrink to rest above the video (desktop
+          // only). Fires once at pin engage; never reverses, so it parks above
+          // the video.
+          if (isDesktop) {
+            gsap
+              .timeline({
+                scrollTrigger: { trigger: block, start: "top top", once: true },
+              })
+              .to(caption, { y: 0, scale: 1, ease: "power2.out", duration: 0.6 });
+          }
         }
 
         const tl = gsap.timeline({
@@ -136,25 +164,6 @@ export function useMacbookScrub({
           duration: 1,
           onComplete: startPlayback,
         });
-
-        // Beat 2 — rise + shrink + fade the whole caption over the first ~25%
-        // of the pinned scrub. immediateRender: false defers start-value
-        // capture to first render, so the tween fades from the live
-        // (Beat-1-revealed) state rather than the hidden build-time state.
-        if (caption) {
-          tl.to(
-            caption,
-            {
-              y: -60,
-              scale: 0.82,
-              opacity: 0,
-              ease: "power2.in",
-              duration: 0.25,
-              immediateRender: false,
-            },
-            0,
-          );
-        }
       };
 
       if (video.readyState >= 1 && Number.isFinite(video.duration)) {
