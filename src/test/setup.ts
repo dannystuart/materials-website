@@ -16,3 +16,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
     dispatchEvent: vi.fn(),
   })) as unknown as typeof window.matchMedia;
 }
+
+// jsdom doesn't implement ResizeObserver. Stub it so effects that observe
+// element size (e.g. useScrollReveal) don't throw on mount.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??=
+  ResizeObserverStub as unknown as typeof ResizeObserver;
