@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { useReducedMotion } from "../hero/useReducedMotion";
 import { useMacbookScrub } from "./useMacbookScrub";
@@ -108,17 +107,6 @@ export function MacbookDemo({ variant }: Props) {
             <source key={s.src} src={s.src} type={s.type} />
           ))}
         </video>
-
-        <Image
-          src="/videos/macbook-demo-ended.jpg"
-          alt=""
-          aria-hidden="true"
-          fill
-          sizes="100vw"
-          className={`object-cover object-bottom transition-opacity duration-300 ${
-            overlayShown ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-        />
 
         <div
           className={`absolute inset-0 flex flex-col items-center justify-center gap-6 bg-black/40 transition-opacity duration-300 ${
