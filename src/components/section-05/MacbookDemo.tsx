@@ -67,10 +67,9 @@ export function MacbookDemo({ variant }: Props) {
         aria-hidden={!reduced || undefined}
         className={
           reduced
-            ? "pointer-events-none px-6 py-4 text-center"
-            : "pointer-events-none relative z-10 px-6 py-4 text-center will-change-transform"
+            ? "pointer-events-none px-6 pt-12 pb-16 text-center"
+            : "pointer-events-none relative z-10 px-6 pt-12 pb-16 text-center will-change-transform"
         }
-        style={reduced ? undefined : { transformOrigin: "top center" }}
       >
         <span
           data-demo-caption-eyebrow
@@ -80,7 +79,7 @@ export function MacbookDemo({ variant }: Props) {
         </span>
         <p
           data-demo-caption-line
-          className="mt-1 font-display text-2xl font-semibold leading-[1.15] tracking-[-0.0334em] text-white md:text-[28px]"
+          className="mt-2 font-display text-3xl font-semibold leading-[1.15] tracking-[-0.0334em] text-white md:text-[56px]"
         >
           {CAPTION_WORDS.map((word, i) => (
             <span

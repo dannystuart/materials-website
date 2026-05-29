@@ -29,6 +29,7 @@ export function useMacbookScrub({
     if (!block || !video) return;
 
     let cleanupMeta: (() => void) | undefined;
+    let cleanupToggle: (() => void) | undefined;
 
     const cleanupDeferred = deferGsap(() => {
       const setup = () => {
@@ -44,6 +45,16 @@ export function useMacbookScrub({
           "[data-demo-caption-word]",
         );
 
+        // Geometry is measured once here at setup — a one-shot, early-scroll
+        // moment — and intentionally not recomputed on resize.
+        const captionH = caption?.offsetHeight ?? 0;
+        const videoH = video.getBoundingClientRect().height || block.offsetHeight;
+        // DOWN distance: drop the heading over the video's upper area so it
+        // sits just above the centred replay overlay ("Want another look?").
+        // captionH carries it past its own height; 0.19 * videoH lands its
+        // baseline ~28px above the overlay text (tuned in-browser at 1440).
+        const downY = captionH + videoH * 0.19;
+
         let played = false;
         const startPlayback = () => {
           if (played) return;
@@ -52,39 +63,20 @@ export function useMacbookScrub({
           cbRef.current?.();
         };
 
-        // Beat 1 + Beat 2 — the caption lives in normal flow ABOVE the video
-        // frame; its untransformed position is its rest spot. Created before
-        // the pin timeline so they sit first in this same deferGsap block.
+        // Reveal (all widths) — the caption lives in normal flow ABOVE the
+        // video frame; y:0 is its rest/UP position. Words + eyebrow blur-fade
+        // up in (hero-style), scrubbed as the section enters. The container
+        // transform (y) is owned solely by the pin rise-off + play/end toggle
+        // below — never touched here.
         if (caption && words && words.length) {
-          // Reveal transform: scale up to ~2x (line 28px -> ~56px) and
-          // translate DOWN so the caption overlays the vertical centre of the
-          // video. Measured, not hard-coded, so it stays centred responsively.
-          const REVEAL_SCALE = 2;
-          const videoH = video.getBoundingClientRect().height || block.offsetHeight;
-          // The caption uses `transform-origin: top center` (set in
-          // MacbookDemo.tsx), so scaling pins its top edge in place. The caption
-          // sits directly above the video — its top is the block top and the
-          // video starts at the caption's bottom — so the scaled visual centre
-          // lands at `y + captionH`. The video's vertical centre is at
-          // `captionH + videoH/2`. Setting y + captionH = captionH + videoH/2
-          // cancels captionH, leaving revealY = videoH/2.
-          // Geometry is measured once here at setup — a one-shot, early-scroll
-          // moment — and intentionally not recomputed on resize.
-          const revealY = videoH / 2;
-
-          if (isDesktop) {
-            // Container starts in the big + over-video state (set here, never
-            // via data-reveal). Beat 2 animates it back to identity (= rest).
-            gsap.set(caption, { y: revealY, scale: REVEAL_SCALE });
-          }
-          // Words/eyebrow hidden for the de-blur reveal (Beat 1).
+          // Hidden states (set here, never via data-reveal — global
+          // `[data-reveal]{opacity:0}` trap).
           gsap.set([eyebrow, ...words], {
             opacity: 0,
             y: 14,
             filter: "blur(10px)",
           });
 
-          // Beat 1 — scrubbed per-word reveal, completes as block hits centre.
           const revealTl = gsap.timeline({
             scrollTrigger: {
               trigger: block,
@@ -118,19 +110,6 @@ export function useMacbookScrub({
               },
               0.15,
             );
-
-          // Beat 2 — one-way rise + shrink to rest above the video (desktop
-          // only). Fires once at pin engage; never reverses, so it parks above
-          // the video.
-          if (isDesktop) {
-            gsap
-              .timeline({
-                scrollTrigger: { trigger: block, start: "top top", once: true },
-              })
-              // duration 0.6 is a feel value tuning the rise's pace — this beat
-              // is time-based, distinct from the scrubbed (scroll-linked) reveal.
-              .to(caption, { y: 0, scale: 1, ease: "power2.out", duration: 0.6 });
-          }
         }
 
         const tl = gsap.timeline({
@@ -169,6 +148,39 @@ export function useMacbookScrub({
           duration: 1,
           onComplete: startPlayback,
         });
+
+        // Rise-off (desktop only) — caption translates UP and off the top edge
+        // over roughly the first half of the pinned scrub, so it's gone before
+        // the lid is fully open. Spliced into the pin timeline at position 0.
+        // immediateRender:false so it animates from the live (y:0) state.
+        // onLeave's disable(true)/revert returns y to 0 (= UP) for free.
+        if (isDesktop && caption) {
+          tl.to(
+            caption,
+            {
+              y: -captionH,
+              ease: "power2.in",
+              duration: 0.5,
+              immediateRender: false,
+            },
+            0,
+          );
+
+          // Play/end toggle — UP on play (post-scrub auto-play + replay), DOWN
+          // on end (above the centred replay overlay). Desktop only.
+          const onPlay = () => {
+            gsap.to(caption, { y: 0, ease: "power2.out", duration: 0.5 });
+          };
+          const onEnded = () => {
+            gsap.to(caption, { y: downY, ease: "power2.out", duration: 0.5 });
+          };
+          video.addEventListener("play", onPlay);
+          video.addEventListener("ended", onEnded);
+          cleanupToggle = () => {
+            video.removeEventListener("play", onPlay);
+            video.removeEventListener("ended", onEnded);
+          };
+        }
       };
 
       if (video.readyState >= 1 && Number.isFinite(video.duration)) {
@@ -185,6 +197,7 @@ export function useMacbookScrub({
 
     return () => {
       cleanupMeta?.();
+      cleanupToggle?.();
       cleanupDeferred();
     };
   }, [blockRef, videoRef, enabled]);
