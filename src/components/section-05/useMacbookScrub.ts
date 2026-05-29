@@ -60,14 +60,17 @@ export function useMacbookScrub({
           // translate DOWN so the caption overlays the vertical centre of the
           // video. Measured, not hard-coded, so it stays centred responsively.
           const REVEAL_SCALE = 2;
-          const captionH = caption.offsetHeight;
           const videoH = video.getBoundingClientRect().height || block.offsetHeight;
-          // GSAP scales about the element centre, so a y-translation moves the
-          // centre by exactly y regardless of scale. The caption sits directly
-          // above the video (its natural top is the block top, the video starts
-          // at the caption's bottom), so the gap from the caption's natural
-          // centre to the video's vertical centre is captionH/2 + videoH/2.
-          const revealY = captionH / 2 + videoH / 2;
+          // The caption uses `transform-origin: top center` (set in
+          // MacbookDemo.tsx), so scaling pins its top edge in place. The caption
+          // sits directly above the video — its top is the block top and the
+          // video starts at the caption's bottom — so the scaled visual centre
+          // lands at `y + captionH`. The video's vertical centre is at
+          // `captionH + videoH/2`. Setting y + captionH = captionH + videoH/2
+          // cancels captionH, leaving revealY = videoH/2.
+          // Geometry is measured once here at setup — a one-shot, early-scroll
+          // moment — and intentionally not recomputed on resize.
+          const revealY = videoH / 2;
 
           if (isDesktop) {
             // Container starts in the big + over-video state (set here, never
@@ -124,6 +127,8 @@ export function useMacbookScrub({
               .timeline({
                 scrollTrigger: { trigger: block, start: "top top", once: true },
               })
+              // duration 0.6 is a feel value tuning the rise's pace — this beat
+              // is time-based, distinct from the scrubbed (scroll-linked) reveal.
               .to(caption, { y: 0, scale: 1, ease: "power2.out", duration: 0.6 });
           }
         }
