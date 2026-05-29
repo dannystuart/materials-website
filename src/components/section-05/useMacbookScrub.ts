@@ -30,6 +30,7 @@ export function useMacbookScrub({
 
     let cleanupMeta: (() => void) | undefined;
     let cleanupToggle: (() => void) | undefined;
+    let cancelled = false;
 
     const cleanupDeferred = deferGsap(() => {
       const setup = () => {
@@ -51,8 +52,10 @@ export function useMacbookScrub({
         const videoH = video.getBoundingClientRect().height || block.offsetHeight;
         // DOWN distance: drop the heading over the video's upper area so it
         // sits just above the centred replay overlay ("Want another look?").
-        // captionH carries it past its own height; 0.19 * videoH lands its
-        // baseline ~28px above the overlay text (tuned in-browser at 1440).
+        // captionH carries it past its own height; 0.19 * videoH is an
+        // approximate, font-load- and layout-dependent tuning figure (gating
+        // setup() on fonts makes the captionH measurement reliable, but the
+        // exact px gap to the overlay still depends on layout; tuned at 1440).
         const downY = captionH + videoH * 0.19;
 
         let played = false;
@@ -168,11 +171,26 @@ export function useMacbookScrub({
 
           // Play/end toggle — UP on play (post-scrub auto-play + replay), DOWN
           // on end (above the centred replay overlay). Desktop only.
+          // duration 0.5 — settled, deliberate slide (matches the rise-off feel,
+          // slower than the scrub-reveal's 0.3 blur-fade).
+          // overwrite:"auto" — guards the tick where post-scrub auto-play
+          // (startPlayback → play → y:0) coincides with onLeave's disable(true)
+          // revert (also → y:0): two writers on the same property.
           const onPlay = () => {
-            gsap.to(caption, { y: 0, ease: "power2.out", duration: 0.5 });
+            gsap.to(caption, {
+              y: 0,
+              ease: "power2.out",
+              duration: 0.5,
+              overwrite: "auto",
+            });
           };
           const onEnded = () => {
-            gsap.to(caption, { y: downY, ease: "power2.out", duration: 0.5 });
+            gsap.to(caption, {
+              y: downY,
+              ease: "power2.out",
+              duration: 0.5,
+              overwrite: "auto",
+            });
           };
           video.addEventListener("play", onPlay);
           video.addEventListener("ended", onEnded);
@@ -183,12 +201,34 @@ export function useMacbookScrub({
         }
       };
 
+      // Gate setup() on BOTH video metadata readiness (for duration) AND
+      // document.fonts.ready — the caption's offsetHeight is measured here, and
+      // reading it before Plus Jakarta Sans (a Google Font) has loaded would use
+      // fallback-font line metrics, drifting both the rise-off (-captionH) and
+      // the DOWN landing (captionH + ...). If the Fonts API is unavailable,
+      // proceed without it.
+      const whenFontsReady = (run: () => void) => {
+        const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+        if (fonts?.ready) {
+          fonts.ready.then(() => {
+            if (!cancelled) run();
+          });
+        } else {
+          run();
+        }
+      };
+
+      const runSetup = () => {
+        if (cancelled) return;
+        whenFontsReady(setup);
+      };
+
       if (video.readyState >= 1 && Number.isFinite(video.duration)) {
-        setup();
+        runSetup();
       } else {
         const onMeta = () => {
           video.removeEventListener("loadedmetadata", onMeta);
-          setup();
+          runSetup();
         };
         video.addEventListener("loadedmetadata", onMeta);
         cleanupMeta = () => video.removeEventListener("loadedmetadata", onMeta);
@@ -196,6 +236,7 @@ export function useMacbookScrub({
     });
 
     return () => {
+      cancelled = true;
       cleanupMeta?.();
       cleanupToggle?.();
       cleanupDeferred();
