@@ -40,7 +40,8 @@ Dependency order: `Research (0)` + `Design-system foundation (1)` → `Align (2)
 
 Each session is scoped to run semi-independently with a clear input, output, and definition-of-done. Hand them out one at a time.
 
-### Session 0 — Research: the skills ecosystem
+### Session 0 — Research: the skills ecosystem ✅ DONE (2026-06-01)
+- **Status:** Complete. Report at `docs/plans/2026-06-01-skills-ecosystem-research.md`. Verdicts folded into Session 5 below. Headline: only `design-system-consistency` is a true from-scratch build; the rest are adopt/orchestrate/generalize.
 - **Goal:** Survey what already exists before we build anything. Don't reinvent the wheel.
 - **Method:** `deep-research` skill (fan-out web search + verify). Also inventory locally-installed skills (`superpowers:*`, `frontend-design`, Vercel set).
 - **Capabilities to research, with adopt / rework / build verdict each:**
@@ -53,7 +54,8 @@ Each session is scoped to run semi-independently with a clear input, output, and
 - **Done when:** every Session-5 skill has a clear adopt-vs-build decision backed by sources.
 - **Depends on:** nothing. Low-regret. Can start immediately.
 
-### Session 1 — Design-system foundation (Materials¹)
+### Session 1 — Design-system foundation (Materials¹) ✅ DONE (2026-06-01)
+- **Status:** Complete. Output note at `docs/plans/2026-06-01-session-1-design-system-output.md`. `design-system.md` authored at repo root (source of truth); tokens encoded in `globals.css` (`@theme` + `:root` + `.t-*` classes); CLAUDE.md placeholders filled; per-format scale smoke-tested at 375/768/1440. Decisions taken with Dan: 4px-grid curated scale (not modular), `mega`=72 kept, `display`=56, mobile display=40, real discrete `md:` tablet tier.
 - **Goal:** Write the design system down as an artifact + define tokens. This is the source of truth everything aligns to, *and* the worked example the skills point at.
 - **Work:**
   - Author `design-system.md`: type scale (display / h2 / h3 / lead / body / caps / micro) with size · leading · tracking · weight **per format (desktop / tablet / mobile)**; spacing scale; colour + gradient tokens; breakpoint strategy (incl. a real tablet tier); promote the element-box + technical-grid-line primitives.
@@ -98,13 +100,15 @@ Each session is scoped to run semi-independently with a clear input, output, and
 ### Session 5 — Extract & package the shareable skills
 - **Goal:** Distill the *method* from Sessions 1–4 into two-layer, shareable skills; fold in Session 0's adopt decisions.
 - **Tooling:** `superpowers:writing-skills` (the Skill-Creator equivalent in this environment).
-- **Candidate skills (final set confirmed after Session 0):**
-  1. **`design-system-consistency`** — audit any site for type-scale / spacing / hierarchy drift and consolidate onto tokens. Recipes: Tailwind, plain CSS custom properties.
-  2. **`responsive-refinement`** — find overflow / tap-target / gutter problems *and* brainstorm semantic rearrangements (the "don't shrink, reframe" mindset). Recipes per stack.
-  3. **`pre-launch-sweep`** — the ship-readiness gate (audit + auto-fix where safe). Universal shell commands where they exist; per-stack notes otherwise.
-  4. **Mobile-review gate** — we already have a `mobile-reviewer` agent that's largely principle-based. Decide: generalize/ship it as part of the package vs. keep as agent + document. Likely "generalize and include."
-- **Packaging:** a README explaining install, the governing law (method/facts/recipe), how a user points each skill at *their* project's own `design-system.md`, and which existing third-party skills/tools to adopt rather than duplicate.
-- **Output:** the skills package, shareable.
+- **Session 0 reset the scope — only ONE of four candidates is a real build.** Full research at `docs/plans/2026-06-01-skills-ecosystem-research.md`. Revised set:
+  1. **`design-system-consistency` — BUILD (method-only).** No good *audit/consolidation* skill exists (official `frontend-design`/`brand-guidelines`/`theme-factory` are all generative, **zero overlap** — the plan's earlier hunch about `frontend-design` was wrong). Build only the *method* (reconcile scale, rewrite rogue inline styles onto tokens). **ADOPT `uxKero/anydesign` (MIT, ★84)** for the token-capture / DTCG-export / live-CSS drift half — that's the "facts in the project" layer; don't build token extraction.
+  2. **`responsive-refinement` — ADOPT `kylezantos/responsive-craft` (MIT, ★32).** Already implements our exact philosophy: semantic "design forks" = our "don't shrink, reframe"; audit mode; 375/768/1024/1440 preview; `ai-failure-patterns.md`; Tailwind + vanilla adapters. *Caveat: low adoption — adopt-but-validate output before depending on it; light rework at most.* **Do not build from scratch.**
+  3. **`pre-launch-sweep` — BUILD thin orchestrator only.** Sequence + go/no-go + exception log that *delegates* audits. Bake in NO perf/a11y logic — delegate that to adopted tooling below or it just becomes a worse `web-quality-skills`.
+  4. **Mobile/visual review — KEEP local agents, generalize.** Our `mobile-reviewer`/`visual-reviewer` are already better-targeted than community options (stricter viewport discipline, desktop-led override). Externalize the brand-specific bullets into a project-supplied `design-principles.md` (mirrors `OneRedOak/.../design-review`, MIT, ★3.8k). Ship the generalized agents in the package.
+  5. **Accessibility + Performance — ADOPT tooling, document wiring.** **`addyosmani/web-quality-skills` (Addy Osmani / Chrome, MIT, ★2.1k)** is the single highest-authority adopt — framework-agnostic perf + Core Web Vitals + a11y + SEO + best-practices following the official spec. Plus axe / eslint-plugin-jsx-a11y / Lighthouse CI / Unlighthouse as the underlying tools.
+- **Licensing gate (hard constraint for a shareable package):** only **MIT** sources are safe to bundle/fork (`web-quality-skills`, `responsive-craft`, `anydesign`, `OneRedOak`, `Community-Access/accessibility-agents`). The two most design-audit-relevant community skills (`claude-design-auditor-skill`, `website-audit-skill`) have **NO license** — cite/learn-from only, never redistribute.
+- **Packaging:** a README explaining install, the governing law (method/facts/recipe), how a user points each skill at *their* project's own `design-system.md` / `design-principles.md`, and which third-party skills to adopt rather than duplicate. **Distribution model TBD** (see Open decisions): fork-and-bundle vs. adopt-by-reference.
+- **Output:** the skills package, shareable. Net: 1 skill written from scratch, 1 thin orchestrator, 1 adopt, 2 generalized agents, 1 adopted toolkit.
 - **Done when:** each skill runs against a non-Materials¹ example (even a toy plain-HTML site) and produces sensible output without Materials¹ facts leaking in.
 - **Depends on:** Sessions 0–4.
 
@@ -114,9 +118,9 @@ Each session is scoped to run semi-independently with a clear input, output, and
 
 | # | Issue | Where | Owning session |
 |---|-------|-------|----------------|
-| 1 | Heading sizes fragmented (56/60/36/40; leading/tracking drift) | hero, §03, §04, §05 | 1 → 2 |
+| 1 | Heading sizes fragmented (56/60/36/40; leading/tracking drift) — **S1 ✅ scale locked** in `design-system.md` (mega 72 · display 56 · h2 44 · h3 32, per-format); section migration → S2 | hero, §03, §04, §05 | 1 → 2 |
 | 2 | Inline `style={{}}` for type | §03, §04 components | 2 |
-| 3 | Only 2 tokens in `globals.css` | `src/app/globals.css` | 1 |
+| 3 | ~~Only 2 tokens in `globals.css`~~ — **S1 ✅ DONE**: full token set (`@theme` palette/breakpoints · `:root` type/gradient/atmosphere vars · `.t-*` responsive classes) | `src/app/globals.css` | 1 |
 | 4 | No tablet (`md:`) strategy — binary mobile→`lg:` | all sections | 3 |
 | 5 | §05 macbook video ~375×187px on mobile, illegible | `section-05/MacbookDemo.tsx` | 3 |
 | 6 | 40MB+ `macbook-demo.mp4` + other heavy video | `public/videos/` | 4 |
@@ -129,8 +133,10 @@ Each session is scoped to run semi-independently with a clear input, output, and
 - Final canonical display size (56 vs 60) and the mobile/tablet steps — decided in Session 1.
 - Whether to introduce a true tablet *layout* (not just type scaling) for any section — decided in Session 3 per-section.
 - §05 mobile video approach: taller crop vs. portrait source vs. reposition — brainstorm in Session 3.
-- Final skill list + names — confirmed after Session 0 research.
-- Whether the mobile-reviewer agent ships inside the package or stays local — Session 5.
+- ~~Final skill list + names — confirmed after Session 0 research.~~ **RESOLVED** (see Session 5): build `design-system-consistency` (method-only) + thin `pre-launch-sweep` orchestrator; adopt `responsive-craft` + `web-quality-skills` + `anydesign`; generalize the two local review agents.
+- ~~Whether the mobile-reviewer agent ships inside the package or stays local~~ **RESOLVED:** generalize and ship (externalize brand bullets to project-supplied `design-principles.md`).
+- **Distribution model — Session 5.** Fork-and-bundle (self-contained package, we own maintenance) vs. adopt-by-reference (thin package that points at upstream MIT skills + our glue + our one original skill; lighter, but depends on upstreams staying maintained). Licensing-gated: only MIT sources bundlable.
+- **`responsive-craft` trust level — Session 5.** Low adoption (★32); validate its output on a real case before depending on it, else fall back to building our own.
 
 ## 8. How to use this doc
 
