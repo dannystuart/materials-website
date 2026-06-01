@@ -26,3 +26,20 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??=
   ResizeObserverStub as unknown as typeof ResizeObserver;
+
+// jsdom doesn't implement IntersectionObserver. Stub it so effects that warm
+// media on viewport entry (e.g. MacbookDemo's video pre-warm) don't throw on
+// mount. The callback never fires in jsdom, which is fine for layout assertions.
+class IntersectionObserverStub {
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+globalThis.IntersectionObserver ??=
+  IntersectionObserverStub as unknown as typeof IntersectionObserver;

@@ -42,6 +42,9 @@ next-env.d.ts
 
 # Source video masters and Figma exports (re-encoded outputs live in public/videos)
 assets-source/
+# Master recordings dropped straight into public/ — keep the .mov sources out of
+# git (and out of the deploy); only the re-encoded .mp4 + poster ship.
+public/videos/*.mov
 
 # Visual-reviewer artifacts (Playwright MCP logs + ad-hoc screenshot dumps)
 .playwright-mcp/
@@ -55,3 +58,10 @@ mobile-*.png
 /cycle-mid-*.png
 /smoother-*.png
 /section-*.png
+# Review tooling also dumps .jpeg/.jpg at the repo root — ignore any top-level
+# one (real image assets live under public/ or docs/, never the root).
+/*.jpeg
+/*.jpg
+
+# Scheduled-task runtime lock (state, not source)
+.claude/scheduled_tasks.lock
