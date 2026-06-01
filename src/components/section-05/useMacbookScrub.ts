@@ -49,14 +49,13 @@ export function useMacbookScrub({
         // Geometry is measured once here at setup — a one-shot, early-scroll
         // moment — and intentionally not recomputed on resize.
         const captionH = caption?.offsetHeight ?? 0;
-        const videoH = video.getBoundingClientRect().height || block.offsetHeight;
-        // DOWN distance: drop the heading over the video's upper area so it
-        // sits just above the centred replay overlay ("Want another look?").
-        // captionH carries it past its own height; 0.19 * videoH is an
-        // approximate, font-load- and layout-dependent tuning figure (gating
-        // setup() on fonts makes the captionH measurement reliable, but the
-        // exact px gap to the overlay still depends on layout; tuned at 1440).
-        const downY = captionH + videoH * 0.19;
+        // UP distance: lift the caption fully off the top edge of the pinned
+        // block. Its rest (y:0) is the overlay band above the closed lid, with
+        // its box anchored at top:0, so translating up by its own height plus a
+        // small buffer clears it past the viewport top — well before the
+        // opening screen rises into that band. Same value drives the rise-off,
+        // the play toggle, and the onLeave re-lift.
+        const UP = -(captionH + 24);
 
         let played = false;
         const startPlayback = () => {
@@ -66,11 +65,12 @@ export function useMacbookScrub({
           cbRef.current?.();
         };
 
-        // Reveal (all widths) — the caption lives in normal flow ABOVE the
-        // video frame; y:0 is its rest/UP position. Words + eyebrow blur-fade
-        // up in (hero-style), scrubbed as the section enters. The container
-        // transform (y) is owned solely by the pin rise-off + play/end toggle
-        // below — never touched here.
+        // Reveal (all widths) — words + eyebrow blur-fade up in (hero-style),
+        // scrubbed as the section enters. y:0 is the caption's rest position
+        // (desktop: overlaying the band above the closed lid; mobile: normal
+        // flow above the frame). This reveal only animates the words/eyebrow;
+        // the container transform (y) is owned solely by the pin rise-off +
+        // play/end toggle below — never touched here.
         if (caption && words && words.length) {
           // Hidden states (set here, never via data-reveal — global
           // `[data-reveal]{opacity:0}` trap).
@@ -134,6 +134,15 @@ export function useMacbookScrub({
               const pin = self.pin as HTMLElement | undefined;
               const savedTime = video.currentTime;
               self.disable(true);
+              // disable(true) also reverts the rise-off, snapping the caption
+              // back to its overlay rest (y:0). But playback is starting and the
+              // lid is open — the live screen fills that band — so on desktop,
+              // re-lift it off the top in the SAME tick (no paint between) to
+              // avoid a flash of the heading over the screen. The 'ended' toggle
+              // brings it back to y:0 once the lid closes.
+              if (isDesktop && caption) {
+                gsap.set(caption, { y: UP });
+              }
               if (Number.isFinite(savedTime) && savedTime > 0) {
                 video.currentTime = savedTime;
               }
@@ -153,32 +162,32 @@ export function useMacbookScrub({
         });
 
         // Rise-off (desktop only) — caption translates UP and off the top edge
-        // over roughly the first half of the pinned scrub, so it's gone before
-        // the lid is fully open. Spliced into the pin timeline at position 0.
-        // immediateRender:false so it animates from the live (y:0) state.
-        // onLeave's disable(true)/revert returns y to 0 (= UP) for free.
+        // over roughly the first 45% of the pinned scrub, so it's clear before
+        // the opening screen rises into its band. Spliced into the pin timeline
+        // at position 0. immediateRender:false so it animates from the live
+        // (y:0 = overlay rest) state. onLeave re-lifts to UP (see above).
         if (isDesktop && caption) {
           tl.to(
             caption,
             {
-              y: -captionH,
+              y: UP,
               ease: "power2.in",
-              duration: 0.5,
+              duration: 0.45,
               immediateRender: false,
             },
             0,
           );
 
-          // Play/end toggle — UP on play (post-scrub auto-play + replay), DOWN
-          // on end (above the centred replay overlay). Desktop only.
-          // duration 0.5 — settled, deliberate slide (matches the rise-off feel,
-          // slower than the scrub-reveal's 0.3 blur-fade).
+          // Play/end toggle — UP off the top on play (post-scrub auto-play +
+          // replay, while the lid is open), back DOWN to the overlay rest (y:0,
+          // above the centred replay CTA) on end, once the lid has closed.
+          // Desktop only. duration 0.5 — settled, deliberate slide.
           // overwrite:"auto" — guards the tick where post-scrub auto-play
-          // (startPlayback → play → y:0) coincides with onLeave's disable(true)
-          // revert (also → y:0): two writers on the same property.
+          // (startPlayback → play → UP) coincides with onLeave's re-lift (also
+          // → UP): two writers on the same property.
           const onPlay = () => {
             gsap.to(caption, {
-              y: 0,
+              y: UP,
               ease: "power2.out",
               duration: 0.5,
               overwrite: "auto",
@@ -186,7 +195,7 @@ export function useMacbookScrub({
           };
           const onEnded = () => {
             gsap.to(caption, {
-              y: downY,
+              y: 0,
               ease: "power2.out",
               duration: 0.5,
               overwrite: "auto",

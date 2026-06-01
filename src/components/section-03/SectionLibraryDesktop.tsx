@@ -21,19 +21,35 @@ export function SectionLibraryDesktop() {
       const eyebrow = q('[data-reveal="eyebrow"]');
       const headlineLines = q('[data-reveal="headline-line"]');
       const video = q('[data-reveal="video"]');
-      const quote = q('[data-reveal="quote"]');
+      const quoteStars = q('[data-quote-stars]');
+      const quoteWords = q('[data-quote-word]');
+      const quoteCaption = q('[data-quote-caption]');
 
-      const all = [eyebrow, headlineLines, video, quote].flat();
+      const all = [
+        eyebrow,
+        headlineLines,
+        video,
+        quoteStars,
+        quoteWords,
+        quoteCaption,
+      ].flat();
 
       if (reducedMotion) {
-        gsap.set(all, { opacity: 1, y: 0, clearProps: "will-change" });
+        gsap.set(all, {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          clearProps: "will-change",
+        });
         return;
       }
 
       gsap.set(eyebrow, { y: 20 });
       gsap.set(headlineLines, { y: 36 });
       gsap.set(video, { y: 40 });
-      gsap.set(quote, { y: 32 });
+      gsap.set(quoteStars, { y: 14, filter: "blur(10px)" });
+      gsap.set(quoteWords, { y: 14, filter: "blur(10px)" });
+      gsap.set(quoteCaption, { y: 14, filter: "blur(10px)" });
 
       return deferGsap(() => {
         gsap
@@ -65,14 +81,38 @@ export function SectionLibraryDesktop() {
               start: "top 82%",
               once: true,
             },
+            delay: 0.25,
           })
-          .to(quote, {
+          .to(quoteStars, {
             opacity: 1,
             y: 0,
-            duration: 0.9,
-            delay: 0.25,
-            ease: "power3.out",
-          });
+            filter: "blur(0px)",
+            duration: 0.7,
+            ease: "power2.out",
+          })
+          .to(
+            quoteWords,
+            {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              duration: 0.6,
+              ease: "power2.out",
+              stagger: { each: 0.025, from: "start" },
+            },
+            "-=0.4",
+          )
+          .to(
+            quoteCaption,
+            {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              duration: 0.7,
+              ease: "power2.out",
+            },
+            "-=0.2",
+          );
       });
     },
     { scope: sectionRef, dependencies: [reducedMotion] },
@@ -81,7 +121,7 @@ export function SectionLibraryDesktop() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-hero-bg pt-32 pb-40 text-white"
+      className="relative w-full overflow-hidden bg-hero-bg py-20 text-white"
       aria-labelledby="library-heading"
       data-section="library"
     >
@@ -142,7 +182,7 @@ export function SectionLibraryDesktop() {
           <div className="col-span-6">
             <LibraryPlateStack />
           </div>
-          <div data-reveal="quote" className="col-span-5 col-start-8 pb-6">
+          <div className="col-span-5 col-start-8 pb-6">
             <LibraryTestimonial />
           </div>
         </div>

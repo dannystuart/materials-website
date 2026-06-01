@@ -18,22 +18,34 @@ export function SectionLibraryMobile() {
       if (!root) return;
 
       const q = gsap.utils.selector(root);
+      const quoteStars = q('[data-quote-stars]');
+      const quoteWords = q('[data-quote-word]');
+      const quoteCaption = q('[data-quote-caption]');
       const all = [
         q('[data-reveal="eyebrow"]'),
         q('[data-reveal="headline-line"]'),
         q('[data-reveal="video"]'),
-        q('[data-reveal="quote"]'),
+        quoteStars,
+        quoteWords,
+        quoteCaption,
       ].flat();
 
       if (reducedMotion) {
-        gsap.set(all, { opacity: 1, y: 0, clearProps: "will-change" });
+        gsap.set(all, {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          clearProps: "will-change",
+        });
         return;
       }
 
       gsap.set(q('[data-reveal="eyebrow"]'), { y: 16 });
       gsap.set(q('[data-reveal="headline-line"]'), { y: 24 });
       gsap.set(q('[data-reveal="video"]'), { y: 24 });
-      gsap.set(q('[data-reveal="quote"]'), { y: 24 });
+      gsap.set(quoteStars, { y: 12, filter: "blur(8px)" });
+      gsap.set(quoteWords, { y: 12, filter: "blur(8px)" });
+      gsap.set(quoteCaption, { y: 12, filter: "blur(8px)" });
 
       return deferGsap(() => {
         gsap
@@ -70,14 +82,38 @@ export function SectionLibraryMobile() {
               start: "top 90%",
               once: true,
             },
+            delay: 0.3,
           })
-          .to(q('[data-reveal="quote"]'), {
+          .to(quoteStars, {
             opacity: 1,
             y: 0,
-            duration: 0.8,
-            delay: 0.3,
-            ease: "power3.out",
-          });
+            filter: "blur(0px)",
+            duration: 0.6,
+            ease: "power2.out",
+          })
+          .to(
+            quoteWords,
+            {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              duration: 0.55,
+              ease: "power2.out",
+              stagger: { each: 0.022, from: "start" },
+            },
+            "-=0.35",
+          )
+          .to(
+            quoteCaption,
+            {
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
+              duration: 0.6,
+              ease: "power2.out",
+            },
+            "-=0.2",
+          );
       });
     },
     { scope: sectionRef, dependencies: [reducedMotion] },
@@ -139,7 +175,7 @@ export function SectionLibraryMobile() {
         <div>
           <LibraryPlateStack compact />
         </div>
-        <div data-reveal="quote">
+        <div>
           <LibraryTestimonial />
         </div>
       </div>

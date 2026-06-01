@@ -8,7 +8,9 @@ type VariantMeta = {
   title: string;
   format: string;
   resolution: string;
-  colorFormat: string;
+  detailLabel: string;
+  detail: string;
+  image: string;
 };
 
 const VARIANTS: Record<LibraryPlateVariant, VariantMeta> = {
@@ -16,19 +18,25 @@ const VARIANTS: Record<LibraryPlateVariant, VariantMeta> = {
     title: "Stills",
     format: "PNG",
     resolution: "2048 × 2048",
-    colorFormat: "sRGB",
+    detailLabel: "Colour format:",
+    detail: "sRGB",
+    image: "/stills-card.png",
   },
   loops: {
     title: "Loops",
-    format: "MP4 · WebM",
-    resolution: "1920 × 1920",
-    colorFormat: "sRGB",
+    format: "MP4",
+    resolution: "1080p",
+    detailLabel: "Codec:",
+    detail: "H.264",
+    image: "/loops-card.png",
   },
   transparent: {
-    title: "Transparent",
+    title: "Templates",
     format: "PNG · alpha",
     resolution: "2048 × 2048",
-    colorFormat: "sRGB + alpha",
+    detailLabel: "Colour format:",
+    detail: "sRGB + alpha",
+    image: "/templates-card.png",
   },
 };
 
@@ -86,37 +94,32 @@ export const LibraryPlate = forwardRef<HTMLDivElement, Props>(function LibraryPl
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-6">
-          <dl
-            className="font-display grid grid-cols-[auto_1fr] gap-x-2 gap-y-[3px]"
-            style={{ fontSize: "10.5px", lineHeight: 1.45 }}
-          >
-            <dt className="text-[#5B5BD6] font-medium">Format:</dt>
-            <dd className="text-[#0B0B0E]">{meta.format}</dd>
-            <dt className="text-[#5B5BD6] font-medium">Original resolution:</dt>
-            <dd className="text-[#0B0B0E]">{meta.resolution}</dd>
-            <dt className="text-[#5B5BD6] font-medium">Colour format:</dt>
-            <dd className="text-[#0B0B0E]">{meta.colorFormat}</dd>
-            <dt className="text-[#5B5BD6] font-medium">Licensing:</dt>
-            <dd className="text-[#0B0B0E]">Personal + Commercial Use</dd>
-          </dl>
-
-          <div
-            className="font-display font-medium text-[#0B0B0E]/70 text-right whitespace-nowrap"
-            style={{ fontSize: "10.5px", lineHeight: 1.45 }}
-          >
-            Last Updated: 24 – 01 – 2026
+        {variant !== "transparent" && (
+          <div className="mt-4">
+            <dl
+              className="font-display grid grid-cols-[auto_1fr] gap-x-2 gap-y-[3px]"
+              style={{ fontSize: "10.5px", lineHeight: 1.45 }}
+            >
+              <dt className="text-[#5B5BD6] font-medium">Format:</dt>
+              <dd className="text-[#0B0B0E]">{meta.format}</dd>
+              <dt className="text-[#5B5BD6] font-medium">Original resolution:</dt>
+              <dd className="text-[#0B0B0E]">{meta.resolution}</dd>
+              <dt className="text-[#5B5BD6] font-medium">{meta.detailLabel}</dt>
+              <dd className="text-[#0B0B0E]">{meta.detail}</dd>
+              <dt className="text-[#5B5BD6] font-medium">Licensing:</dt>
+              <dd className="text-[#0B0B0E]">Personal + Commercial Use</dd>
+            </dl>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="relative library-plate-fade px-5 pb-2">
         <div className="relative w-full overflow-hidden rounded-[12px] bg-[#EDEDEF]">
           <Image
-            src="/materials-grid.jpg"
+            src={meta.image}
             alt=""
-            width={1200}
-            height={792}
+            width={1804}
+            height={1631}
             className="block w-full h-auto"
             priority={false}
           />

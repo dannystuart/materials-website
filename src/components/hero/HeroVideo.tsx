@@ -17,7 +17,6 @@ export const HeroVideo = forwardRef<HTMLVideoElement, Props>(function HeroVideo(
       muted
       playsInline
       preload={preload}
-      poster="/videos/materials-hero-poster.jpg"
       role="presentation"
       aria-hidden="true"
       data-hero-video

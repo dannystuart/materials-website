@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "../hero/useReducedMotion";
 import { useMacbookScrub } from "./useMacbookScrub";
 
@@ -50,11 +50,52 @@ export function MacbookDemo({ variant }: Props) {
     void video.play().catch(() => {});
   }, []);
 
-  const preload = variant === "desktop" ? "auto" : "metadata";
+  // Deferred buffering. §05 is the last section, so the whole scroll journey is
+  // free runway to fetch the (large, native-res) demo. Start at "metadata" — the
+  // scrub setup only needs video.duration — so the 40MB+ file never competes
+  // with the hero at page load. Warm to "auto" once the user is ~1.5 viewports
+  // away, by which point it buffers ahead of arrival. The scrub itself only ever
+  // seeks the first ~2s, and the file is faststart + range-served, so even an
+  // un-warmed scrub stays smooth; warming pre-buffers the longer play-out phase.
+  const [warmed, setWarmed] = useState(false);
+  useEffect(() => {
+    const block = blockRef.current;
+    if (!block || warmed) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setWarmed(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px 150% 0px" },
+    );
+    io.observe(block);
+    return () => io.disconnect();
+  }, [warmed]);
+
+  const preload = warmed ? "auto" : "metadata";
   const sources =
     variant === "desktop"
       ? [{ src: "/videos/macbook-demo.mp4", type: "video/mp4" }]
       : [{ src: "/videos/macbook-demo-720.mp4", type: "video/mp4" }];
+
+  // Desktop: the caption overlays the upper band of the video frame (the empty
+  // space above the closed lid that the screen swings up into). This keeps the
+  // heading visually attached to the demo — no gap — and lets the opening lid
+  // push it off the top. Mobile keeps the caption in normal flow above the
+  // frame (no rise-off / toggle there, so it must never overlap the screen).
+  const captionPosition =
+    variant === "desktop"
+      ? "absolute inset-x-0 top-0 z-20 px-6 pt-[150px] text-center"
+      : "relative z-10 px-6 pt-20 pb-16 text-center";
+
+  // The 16:9 source carries empty space below the open laptop; cropping it into
+  // the 2:1 frame with object-bottom anchors that gap to the top, lifting the
+  // laptop high against the floating pill. Desktop centres the crop so the open
+  // laptop sits central in the pinned frame. Mobile is left on object-bottom.
+  const objectPosition =
+    variant === "desktop" ? "object-center" : "object-bottom";
 
   return (
     <div
@@ -64,11 +105,9 @@ export function MacbookDemo({ variant }: Props) {
     >
       <div
         data-demo-caption={reduced ? "static" : "motion"}
-        className={
-          reduced
-            ? "pointer-events-none px-6 pt-20 pb-16 text-center"
-            : "pointer-events-none relative z-10 px-6 pt-20 pb-16 text-center will-change-transform"
-        }
+        className={`pointer-events-none ${captionPosition}${
+          reduced ? "" : " will-change-transform"
+        }`}
       >
         <span
           data-demo-caption-eyebrow
@@ -95,7 +134,7 @@ export function MacbookDemo({ variant }: Props) {
       <div className="relative aspect-[2/1] w-full overflow-hidden">
         <video
           ref={videoRef}
-          className="h-full w-full object-cover object-bottom"
+          className={`h-full w-full object-cover ${objectPosition}`}
           muted
           playsInline
           preload={preload}
