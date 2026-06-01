@@ -5,6 +5,147 @@
   --color-hero-bg: #010100;
 }
 
+/* ── Design system tokens (see /design-system.md — source of truth) ──
+   Added in Session 1. No section migration yet; sections adopt these
+   in Session 2. Existing hero/gradient classes are intentionally left
+   untouched to avoid any visual change this session. */
+
+/* Palette + breakpoints → Tailwind utilities (bg-plate-bg, wide:, ultra:) */
+@theme {
+  --color-plate-bg: #f4f4f6;     /* library plate light surface */
+  --color-plate-ink: #0b0b0e;    /* text on plate */
+  --color-plate-label: #5b5bd6;  /* plate metadata label (violet) */
+
+  /* sm/md/lg/xl/2xl inherit Tailwind defaults: md=768 (tablet tier),
+     lg=1024 (desktop, primary canvas). These replace ad-hoc min-[…]. */
+  --breakpoint-wide: 1600px;     /* vw gutters engage */
+  --breakpoint-ultra: 2200px;    /* max vw gutters */
+}
+
+:root {
+  /* Type sizes per format. Only the size steps per breakpoint; leading/
+     tracking/weight are constants baked into the .t-* classes below.
+     Base = mobile (<768). */
+  --fs-mega: 44px;
+  --fs-display: 40px;
+  --fs-h2: 32px;
+  --fs-h3: 24px;
+  --fs-lead: 20px;
+  --fs-body: 16px;
+  --fs-caption: 14px;
+  --fs-caps: 11px;
+  --fs-micro: 10px;
+
+  /* Material gradients (the only warm source) */
+  --gradient-creative: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
+  --gradient-library: linear-gradient(90deg, #F472B6 0%, #FB923C 50%, #FACC15 100%);
+  --gradient-material: linear-gradient(
+    100deg,
+    #A855F7 0%,
+    #F472B6 25%,
+    #F97316 50%,
+    #F472B6 75%,
+    #A855F7 100%
+  );
+
+  /* Atmosphere blue — the only page-level atmosphere (cool, bottom-anchored) */
+  --atmosphere-blue-deep: 44, 94, 160;    /* use as rgb(var(--…) / α) */
+  --atmosphere-blue-light: 83, 149, 237;
+  --atmosphere-blue-close: 96, 142, 224;  /* §05 card-cluster ambient */
+}
+
+/* Tablet tier (md: ≥768) — only the sizes that change */
+@media (min-width: 768px) {
+  :root {
+    --fs-mega: 60px;
+    --fs-display: 48px;
+    --fs-h2: 40px;
+    --fs-h3: 28px;
+    --fs-body: 18px;
+    --fs-caps: 12px;
+  }
+}
+
+/* Desktop (lg: ≥1024) — primary canvas */
+@media (min-width: 1024px) {
+  :root {
+    --fs-mega: 72px;
+    --fs-display: 56px;
+    --fs-h2: 44px;
+    --fs-h3: 32px;
+    --fs-lead: 24px;
+  }
+}
+
+/* Responsive type classes — the anti-drift mechanism.
+   A section writes className="t-display" once and is correct at every
+   format. Prefer these over arbitrary values or inline styles. */
+@layer components {
+  .t-mega {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-mega);
+    line-height: 1.05;
+    letter-spacing: -0.033em;
+    font-weight: 600;
+  }
+  .t-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-display);
+    line-height: 1.1;
+    letter-spacing: -0.033em;
+    font-weight: 600;
+  }
+  .t-h2 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-h2);
+    line-height: 1.1;
+    letter-spacing: -0.033em;
+    font-weight: 600;
+  }
+  .t-h3 {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-h3);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  .t-lead {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-lead);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    font-weight: 400;
+  }
+  .t-body {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-body);
+    line-height: 1.55;
+    font-weight: 400;
+  }
+  .t-caption {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-caption);
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .t-caps {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-caps);
+    line-height: 1;
+    letter-spacing: 0.28em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .t-micro {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: var(--fs-micro);
+    line-height: 1.4;
+    letter-spacing: 0.22em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+}
+
 body {
   background: var(--color-hero-bg);
   color: white;
