@@ -197,6 +197,16 @@ body {
   );
 }
 
+/* Horizontal scroll containers (mobile carousels) — hide the scrollbar,
+   keep the scrolling. Used by the §02 pitch carousel and §04 recipe scroll. */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
 .library-video-mask {
   -webkit-mask-image: linear-gradient(
     to bottom,
