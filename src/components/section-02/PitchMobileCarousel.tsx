@@ -25,8 +25,12 @@ type Line = {
   opacity: number;
 };
 
-/** Resting layout used before measurement / under reduced motion. */
-const REST_LINE: Line = { x1: 0, y1: 0, x2: 0, y2: 0, opacity: 0 };
+/** Pre-measurement placeholder: zero-length (so nothing paints until
+ * measure() sets real endpoints) but opacity 1, so the brightness <g> is
+ * visible-by-default and never stranded at 0 if measure() is delayed —
+ * mirrors the codebase's visible-by-default model and keeps the static
+ * reduced-motion draw independent of measurement timing. */
+const INITIAL_LINE: Line = { x1: 0, y1: 0, x2: 0, y2: 0, opacity: 1 };
 
 export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
   const reducedMotion = useReducedMotion();
@@ -39,8 +43,8 @@ export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
 
   // SVG viewBox is sized 1:1 to the wrapper in CSS px (1 unit = 1px).
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [designLine, setDesignLine] = useState<Line>(REST_LINE);
-  const [aiLine, setAiLine] = useState<Line>(REST_LINE);
+  const [designLine, setDesignLine] = useState<Line>(INITIAL_LINE);
+  const [aiLine, setAiLine] = useState<Line>(INITIAL_LINE);
 
   /**
    * Recompute both lines from current layout. start = hub bottom-centre;
@@ -96,7 +100,7 @@ export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
   useEffect(() => {
     measure();
 
-    const ro = new ResizeObserver(() => measure());
+    const ro = new ResizeObserver(measure);
     if (wrapperRef.current) ro.observe(wrapperRef.current);
     if (trackRef.current) ro.observe(trackRef.current);
 
