@@ -323,7 +323,7 @@ Priority order is 1→8 as above. They're **independent** — but for momentum, 
 
 ---
 
-## ▶ Session progress — 2026-06-03 (RESUME HERE)
+## ▶ Session progress — 2026-06-03 (✅ COMPLETE — all 7 shipped + verified; see completion note at end)
 
 **Branch:** `feat/design-system-foundation`. The Session-2 `t-*` token migration was committed first as a clean base (`2950191`), then `.no-scrollbar` (`970f386`). All work below builds on those.
 
@@ -348,3 +348,22 @@ Priority order is 1→8 as above. They're **independent** — but for momentum, 
 - **Flex carousel sizing:** a card with `min-w-[X%] shrink-0` grows to its content's intrinsic width (overflows the viewport, clips captions). Use `w-[X%] min-w-0 shrink-0` so the flex item honours the width and a `w-full` child conforms. Applied in #1 and #2.
 - **Playwright lock:** a leftover MCP Chrome from a prior session holds `~/Library/Caches/ms-playwright/mcp-chrome-*/SingletonLock` → "Browser is already in use". Kill the stale PID to free it. Only one Playwright instance at a time, so the controller must `browser_close` before a `mobile-reviewer` subagent runs.
 - **Verify via subagents, not main-thread screenshots** — main-thread Playwright screenshots balloon context fast; delegate visual checks to `mobile-reviewer`.
+
+---
+
+## ✅ 2026-06-03 — session complete
+
+All 7 annotations shipped on `feat/design-system-foundation` and verified. Commits: `c4c7422` (#7 library phones guard), `618df5d` (#6 footer yo-yo + wordmark lift), `8d41559` (mobile-reviewer fixes), `e3443d9` (review doc) — on top of the earlier `2cdded0`/`9e433f5`/`e4ab2ca` (#1), `9716c59` (#2), `243e1ca` (#3), `19613a6` (#8), `b80ad84` (#4 first pass).
+
+- **#4 glow:** the `b80ad84` version was still invisible (`0.4` + `blur(44px)` spread too thin against near-black). Re-tuned to `0.6` + `blur(28px)` with the bright centre just above the card edge (`8d41559`); **confirmed rendering in-browser at 375**.
+- **mobile-reviewer (375/390):** ran once → `docs/reviews/2026-06-03-mobile-amends-review.md`. Caught two tap-target FAILs now fixed `lg:`-scoped (library toggles 35→45px via `py-[13px] lg:py-2`; footer links 20→44px via `py-3 lg:py-0` — `FooterPill` is shared with desktop).
+- **Desktop 1440 regression:** byte-identical, confirmed by in-browser measurement — toggles 35px, footer links 21px, hero wordmark CSS 292px. (The hero intro animation reads `opacity:0` under Playwright automation — a pre-existing deferGsap/ScrollRestore artifact, **not** a regression; the locked hero plays fine for real users and the mobile reviewer saw the 375 hero correctly.)
+- **`pnpm build`:** green (compiled 2.2s, TS pass, 4/4 static pages, 0 errors).
+
+**Open for Dan (surfaced by the reviewer, deliberately NOT auto-fixed — scope/judgment calls):**
+1. §02 carousel first-card peek is ~56px, not the ~20px spec — honouring it needs a left sentinel element (can't snap-centre the first card without scroll-left-of-zero). Functional as-is.
+2. Floating CTA pill has no `env(safe-area-inset-top)` guard → would overlap the Dynamic Island on notched phones. One-line fix if wanted.
+3. §03 `stills-card.png` is the LCP element and wants Next's `priority` prop (perf hint).
+- Plus: footer video yo-yo is code-correct but `currentTime`-scrubbing of `footer-960.mp4` may stutter on older devices — needs a real-device check.
+
+**Branch NOT merged** — left for Dan's call (mid design-system arc).
