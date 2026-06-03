@@ -195,14 +195,14 @@ export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
         <div
           ref={designCardRef}
           data-reveal="card"
-          className="min-w-[78%] shrink-0 snap-center"
+          className="w-[78%] min-w-0 shrink-0 snap-center"
         >
           <PitchDesignOutput />
         </div>
         <div
           ref={aiCardRef}
           data-reveal="card"
-          className="min-w-[78%] shrink-0 snap-center"
+          className="w-[78%] min-w-0 shrink-0 snap-center"
         >
           <PitchAIOutput />
         </div>
