@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { gsap } from "@/lib/gsap";
 import { MaterialsWordmark } from "@/components/hero/icons/MaterialsWordmark";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { FooterPill } from "./FooterPill";
@@ -9,37 +10,56 @@ export function FooterMobile() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reducedMotion = useReducedMotion();
 
+  // Yo-yo the ambient material clip (forward → reverse → forward) instead of a
+  // hard loop, so there's no jarring jump-cut back to frame 0 each cycle. Native
+  // playback can't run in reverse, so drive video.currentTime from a GSAP proxy
+  // tween. The forward leg lasts video.duration / 0.4 to preserve the prior 0.4×
+  // slow feel. Reduced motion: hold one mid-clip still frame, no tween.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const seedMiddle = () => {
+    let tween: gsap.core.Tween | null = null;
+
+    const start = () => {
       if (!video.duration) return;
-      try {
-        video.currentTime = video.duration / 2;
-      } catch {
-        // ignore
+
+      if (reducedMotion) {
+        try {
+          video.currentTime = video.duration / 2;
+        } catch {
+          // ignore seek errors
+        }
+        return;
       }
+
+      video.pause();
+      const proxy = { t: 0 };
+      tween = gsap.to(proxy, {
+        t: video.duration,
+        duration: video.duration / 0.4,
+        ease: "none",
+        repeat: -1,
+        yoyo: true,
+        onUpdate: () => {
+          try {
+            video.currentTime = proxy.t;
+          } catch {
+            // ignore seek errors mid-scrub
+          }
+        },
+      });
     };
 
     if (video.readyState >= 1 && video.duration) {
-      seedMiddle();
+      start();
     } else {
-      video.addEventListener("loadedmetadata", seedMiddle, { once: true });
+      video.addEventListener("loadedmetadata", start, { once: true });
     }
-
-    if (reducedMotion) {
-      return () => video.removeEventListener("loadedmetadata", seedMiddle);
-    }
-
-    video.loop = true;
-    video.playbackRate = 0.4;
-    const tryPlay = () => video.play().catch(() => {});
-    tryPlay();
 
     return () => {
-      video.pause();
-      video.removeEventListener("loadedmetadata", seedMiddle);
+      tween?.kill();
+      video.removeEventListener("loadedmetadata", start);
     };
   }, [reducedMotion]);
 
@@ -99,7 +119,7 @@ export function FooterMobile() {
           />
         </div>
 
-        <div className="relative z-10 flex h-full items-center justify-center px-6">
+        <div className="relative z-20 flex h-full items-start justify-center px-6 pt-[clamp(28px,8vw,44px)]">
           <MaterialsWordmark className="h-auto w-[200px] text-white" />
         </div>
 
