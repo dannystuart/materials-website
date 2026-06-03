@@ -81,7 +81,7 @@ export function FooterDesktop() {
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-12 pb-7">
-          <p className="font-display text-[11px] font-medium uppercase tracking-[0.28em] text-white/55">
+          <p className="t-caps text-white/55">
             © 2026 Materials¹ — Edition 1
           </p>
         </div>

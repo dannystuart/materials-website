@@ -128,15 +128,15 @@ export function PackCard({ pack }: Props) {
           />
         ) : null}
 
-        <div className="relative text-[12px] font-medium uppercase tracking-[0.14em] text-white/60">
+        <div className="relative t-caps text-white/60">
           {pack.catalogHeader}
         </div>
 
         <div className="relative mt-6">
-          <h3 className="text-[32px] font-semibold leading-tight tracking-[-0.01em] text-white/85 transition-colors duration-500 ease-out group-hover:text-white">
+          <h3 className="t-h3 text-white/85 transition-colors duration-500 ease-out group-hover:text-white">
             {pack.name}
           </h3>
-          <p className="mt-2 text-[14px] leading-snug text-white/65 transition-colors duration-500 ease-out group-hover:text-white/90">
+          <p className="mt-2 t-caption text-white/65 transition-colors duration-500 ease-out group-hover:text-white/90">
             {pack.tagline}
           </p>
         </div>

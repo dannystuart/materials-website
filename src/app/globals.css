@@ -165,6 +165,14 @@ body {
   );
 }
 
+/* Hero headline = display token (40/48/56) with the locked hero leading.
+   §01-only; tracking is em-based so it rides the responsive size. */
+.hero-headline {
+  font-size: var(--fs-display);
+  line-height: 1.15;
+  letter-spacing: -0.033em;
+}
+
 .hero-creative {
   display: inline-block;
   background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);

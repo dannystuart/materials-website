@@ -127,18 +127,13 @@ export function SectionPitchMobile() {
     >
       <p
         data-reveal="eyebrow"
-        className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/45"
+        className="t-caps text-white/45"
       >
         §02 / The pitch
       </p>
       <h2
         id="pitch-heading-m"
-        className="mt-4 font-display font-semibold text-white"
-        style={{
-          fontSize: "42px",
-          lineHeight: 1.05,
-          letterSpacing: "-1.4px",
-        }}
+        className="mt-4 t-mega text-white"
       >
         <span data-reveal="headline-line" className="block">
           One <span className="gradient-word italic">Material</span>.
@@ -149,7 +144,7 @@ export function SectionPitchMobile() {
       </h2>
       <p
         data-reveal="lede"
-        className="mt-5 max-w-[40ch] font-display text-[15px] leading-[1.55] text-white/70"
+        className="mt-5 max-w-[40ch] t-body text-white/70"
       >
         Drop it into a design tool as a background or surface. Feed the same
         source to Midjourney as a style reference. Same library, both jobs —

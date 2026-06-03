@@ -11,10 +11,10 @@ export function SectionCloseDesktop() {
     >
       <MacbookDemo variant="desktop" />
 
-      <div className="mt-32 px-12 min-[1600px]:px-[12vw] min-[2200px]:px-[20vw]">
+      <div className="mt-32 px-12 wide:px-[12vw] ultra:px-[20vw]">
         <h2
           id="close-heading"
-          className="text-center font-display text-[56px] font-semibold leading-[1.15] tracking-[-0.0334em]"
+          className="text-center t-display"
         >
           Two ways in.
         </h2>
@@ -46,7 +46,7 @@ export function SectionCloseDesktop() {
         </div>
       </div>
 
-      <div className="mt-32 px-12 min-[1600px]:px-[12vw] min-[2200px]:px-[20vw]">
+      <div className="mt-32 px-12 wide:px-[12vw] ultra:px-[20vw]">
         <CloseTestimonial />
       </div>
     </section>

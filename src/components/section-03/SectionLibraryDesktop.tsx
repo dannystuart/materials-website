@@ -129,18 +129,13 @@ export function SectionLibraryDesktop() {
         <header className="grid grid-cols-12 gap-x-6">
           <p
             data-reveal="eyebrow"
-            className="col-span-4 col-start-1 mt-2 text-[11px] font-medium uppercase tracking-[0.28em] text-white/45"
+            className="col-span-4 col-start-1 mt-2 t-caps text-white/45"
           >
             §03 / The library
           </p>
           <h2
             id="library-heading"
-            className="col-span-7 col-start-6 font-display font-semibold text-white"
-            style={{
-              fontSize: "60px",
-              lineHeight: 1.08,
-              letterSpacing: "-2.2px",
-            }}
+            className="col-span-7 col-start-6 t-display text-white"
           >
             <span data-reveal="headline-line" className="block">
               <span className="library-gradient">160</span> Materials.
@@ -150,14 +145,8 @@ export function SectionLibraryDesktop() {
             </span>
             <span
               data-reveal="headline-line"
-              className="block text-white/70"
-              style={{
-                fontSize: "26px",
-                lineHeight: 1.35,
-                letterSpacing: "-0.4px",
-                fontWeight: 400,
-                marginTop: "18px",
-              }}
+              className="block t-lead text-white/70"
+              style={{ marginTop: "18px" }}
             >
               Yours to apply across everything you make.
             </span>

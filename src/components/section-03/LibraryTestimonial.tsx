@@ -56,20 +56,13 @@ export function LibraryTestimonial({ className }: Props) {
         <Star size={14} />
         <span
           aria-hidden="true"
-          className="ml-2 font-display font-medium uppercase tracking-[0.22em] text-white/55"
-          style={{ fontSize: "12px" }}
+          className="ml-2 t-caps text-white/55"
         >
           5.0
         </span>
       </div>
       <blockquote
-        className="font-display text-white"
-        style={{
-          fontSize: "26px",
-          lineHeight: 1.35,
-          letterSpacing: "-0.4px",
-          fontWeight: 400,
-        }}
+        className="t-lead text-white"
       >
         <span data-quote-word className="inline-block text-white/55">
           &ldquo;
@@ -91,23 +84,14 @@ export function LibraryTestimonial({ className }: Props) {
 
       <figcaption
         data-quote-caption
-        className="mt-8 flex items-center gap-3 font-display"
-        style={{ fontSize: "11px" }}
+        className="mt-8 flex items-center gap-3 t-caps"
       >
         <span className="h-px w-8 bg-white/35" aria-hidden="true" />
-        <span
-          className="font-medium uppercase tracking-[0.22em] text-white/70"
-        >
-          MPH Sound
-        </span>
+        <span className="text-white/70">MPH Sound</span>
         <span className="text-white/35" aria-hidden="true">
           ·
         </span>
-        <span
-          className="font-medium uppercase tracking-[0.22em] text-white/45"
-        >
-          Verified Buyer
-        </span>
+        <span className="text-white/45">Verified Buyer</span>
       </figcaption>
     </figure>
   );

@@ -5,11 +5,6 @@ export function HeroHeadline() {
   return (
     <h1
       className="hero-headline font-display font-semibold text-white max-w-[595px]"
-      style={{
-        fontSize: "56px",
-        lineHeight: 1.15,
-        letterSpacing: "-1.87px",
-      }}
       data-hero-headline
     >
       {HEADLINE_LINES.map((line, lineIdx) => (

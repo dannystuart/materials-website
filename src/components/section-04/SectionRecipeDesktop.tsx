@@ -181,18 +181,13 @@ export function SectionRecipeDesktop() {
         <header className="grid grid-cols-12 gap-x-6">
           <p
             data-reveal="eyebrow"
-            className="col-span-12 text-[11px] font-medium uppercase tracking-[0.28em] text-white/45"
+            className="col-span-12 t-caps text-white/45"
           >
             §04 / The recipe
           </p>
           <h2
             id="recipe-heading"
-            className="col-span-7 mt-6 font-display font-semibold text-white"
-            style={{
-              fontSize: "60px",
-              lineHeight: 1.08,
-              letterSpacing: "-2.2px",
-            }}
+            className="col-span-7 mt-6 t-display text-white"
           >
             <span
               data-reveal="headline-line"
@@ -215,15 +210,14 @@ export function SectionRecipeDesktop() {
             </span>
             <span
               data-reveal="headline-line"
-              className="block text-white/70"
-              style={{ fontWeight: 400 }}
+              className="block text-white/70 font-normal"
             >
               That&rsquo;s the whole recipe.
             </span>
           </h2>
           <p
             data-reveal="lede"
-            className="col-span-5 col-start-8 mt-8 max-w-[44ch] self-end font-display text-[18px] leading-[1.55] text-white/70"
+            className="col-span-5 col-start-8 mt-8 max-w-[44ch] self-end t-body text-white/70"
           >
             Materials work as fills. Drop one onto type, vectors, or photos —
             same workflow, every tool you already use.

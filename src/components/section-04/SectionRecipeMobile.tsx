@@ -173,18 +173,13 @@ export function SectionRecipeMobile() {
       <div className="relative px-6">
         <p
           data-reveal="eyebrow"
-          className="text-[10px] font-medium uppercase tracking-[0.26em] text-white/45"
+          className="t-caps text-white/45"
         >
           §04 / The recipe
         </p>
         <h2
           id="recipe-heading-mobile"
-          className="mt-5 font-display font-semibold text-white"
-          style={{
-            fontSize: "36px",
-            lineHeight: 1.1,
-            letterSpacing: "-1.2px",
-          }}
+          className="mt-5 t-display text-white"
         >
           <span
             data-reveal="headline-line"
@@ -207,8 +202,7 @@ export function SectionRecipeMobile() {
           </span>
           <span
             data-reveal="headline-line"
-            className="block text-white/70"
-            style={{ fontWeight: 400 }}
+            className="block text-white/70 font-normal"
           >
             That&rsquo;s the whole recipe.
           </span>

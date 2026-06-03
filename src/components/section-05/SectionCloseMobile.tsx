@@ -14,7 +14,7 @@ export function SectionCloseMobile() {
       <div className="px-6">
         <h2
           id="close-heading-m"
-          className="mt-20 text-center font-display text-[40px] font-semibold leading-[1.15] tracking-[-0.025em]"
+          className="mt-20 text-center t-display"
         >
           Two ways in.
         </h2>

@@ -31,14 +31,9 @@ export function RecipeTile({
     >
       <div
         className={clsx(
-          "font-display absolute top-6 text-white/75 uppercase",
+          "t-caps absolute top-6 text-white/75",
           variant === "desktop" ? "left-7" : "left-5",
         )}
-        style={{
-          fontSize: 12,
-          letterSpacing: "0.22em",
-          fontWeight: 600,
-        }}
       >
         {label}
       </div>

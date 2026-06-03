@@ -12,18 +12,18 @@ export function FaqItem({ entry, defaultOpen = false }: Props) {
       open={defaultOpen}
     >
       <summary
-        className="cta-focus-ring relative flex cursor-pointer list-none items-baseline gap-6 py-7 transition-colors duration-200 ease-out hover:text-white motion-reduce:transition-none sm:gap-8"
+        className="cta-focus-ring relative flex cursor-pointer list-none items-baseline gap-6 py-7 transition-colors duration-200 ease-out hover:text-white motion-reduce:transition-none md:gap-8"
         aria-controls={`faq-${entry.id}-body`}
       >
         <span
           aria-hidden="true"
-          className="hidden shrink-0 font-display text-[11px] font-medium uppercase tracking-[0.22em] text-white/40 transition-colors duration-200 ease-out group-open:text-white/70 sm:inline-block sm:w-12"
+          className="hidden shrink-0 t-micro text-white/40 transition-colors duration-200 ease-out group-open:text-white/70 md:inline-block md:w-12"
         >
           {entry.number}
         </span>
 
         <span
-          className="flex-1 font-display text-[20px] font-medium leading-snug tracking-[-0.005em] text-white/80 transition-colors duration-200 ease-out group-hover:text-white group-open:text-white sm:text-[22px]"
+          className="flex-1 t-lead font-medium text-white/80 transition-colors duration-200 ease-out group-hover:text-white group-open:text-white"
         >
           {entry.question}
         </span>
@@ -49,15 +49,13 @@ export function FaqItem({ entry, defaultOpen = false }: Props) {
 
       <div
         id={`faq-${entry.id}-body`}
-        className="faq-body grid grid-cols-1 pb-8 sm:grid-cols-[3rem_1fr_2rem] sm:gap-x-8"
+        className="faq-body grid grid-cols-1 pb-8 md:grid-cols-[3rem_1fr_2rem] md:gap-x-8"
       >
-        <div aria-hidden="true" className="hidden sm:block" />
-        <p
-          className="max-w-[640px] font-display text-[17px] leading-[1.6] text-white/70 sm:text-[18px]"
-        >
+        <div aria-hidden="true" className="hidden md:block" />
+        <p className="max-w-[640px] t-body text-white/70">
           {entry.answer}
         </p>
-        <div aria-hidden="true" className="hidden sm:block" />
+        <div aria-hidden="true" className="hidden md:block" />
       </div>
     </details>
   );

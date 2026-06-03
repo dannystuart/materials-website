@@ -111,13 +111,13 @@ export function MacbookDemo({ variant }: Props) {
       >
         <span
           data-demo-caption-eyebrow
-          className="font-display text-[11px] font-medium uppercase tracking-[0.28em] text-white/70"
+          className="t-caps text-white/70"
         >
           APPLIED
         </span>
         <p
           data-demo-caption-line
-          className="mt-2 text-balance font-display text-3xl font-semibold leading-[1.15] tracking-[-0.0334em] text-white md:text-[56px]"
+          className="mt-2 text-balance t-display text-white"
         >
           {CAPTION_WORDS.map((word, i) => (
             <span

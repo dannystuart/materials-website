@@ -167,18 +167,13 @@ export function SectionPitchDesktop() {
         <header className="grid grid-cols-12 gap-x-6">
           <p
             data-reveal="eyebrow"
-            className="col-span-12 text-[11px] font-medium uppercase tracking-[0.28em] text-white/45"
+            className="col-span-12 t-caps text-white/45"
           >
             §02 / The pitch
           </p>
           <h2
             id="pitch-heading"
-            className="col-span-6 mt-6 font-display font-semibold text-white"
-            style={{
-              fontSize: "72px",
-              lineHeight: 1.05,
-              letterSpacing: "-2.6px",
-            }}
+            className="col-span-6 mt-6 t-mega text-white"
           >
             <span data-reveal="headline-line" className="block">
               One <span className="gradient-word">Material</span>.
@@ -189,7 +184,7 @@ export function SectionPitchDesktop() {
           </h2>
           <p
             data-reveal="lede"
-            className="col-span-5 col-start-8 mt-8 max-w-[44ch] self-end font-display text-[18px] leading-[1.55] text-white/70"
+            className="col-span-5 col-start-8 mt-8 max-w-[44ch] self-end t-body text-white/70"
           >
             Drop it into a design tool as a background or surface. Feed the
             same source to Midjourney as a style reference. Same library, both

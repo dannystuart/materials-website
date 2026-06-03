@@ -108,7 +108,7 @@ export function FooterMobile() {
         </div>
 
         <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-6 pb-6 text-center">
-          <p className="font-display text-[10px] font-medium uppercase tracking-[0.28em] text-white/55">
+          <p className="t-caps text-white/55">
             © 2026 Materials¹ — Edition 1
           </p>
         </div>

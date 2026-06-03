@@ -129,18 +129,13 @@ export function SectionLibraryMobile() {
       <header className="relative z-10 px-6">
         <p
           data-reveal="eyebrow"
-          className="text-[10px] font-medium uppercase tracking-[0.26em] text-white/45"
+          className="t-caps text-white/45"
         >
           §03 / The library
         </p>
         <h2
           id="library-heading-mobile"
-          className="mt-3 font-display font-semibold text-white"
-          style={{
-            fontSize: "36px",
-            lineHeight: 1.1,
-            letterSpacing: "-1.2px",
-          }}
+          className="mt-3 t-display text-white"
         >
           <span data-reveal="headline-line" className="block">
             <span className="library-gradient">160</span> Materials.
@@ -150,14 +145,8 @@ export function SectionLibraryMobile() {
           </span>
           <span
             data-reveal="headline-line"
-            className="block text-white/70"
-            style={{
-              fontSize: "20px",
-              lineHeight: 1.35,
-              letterSpacing: "-0.3px",
-              fontWeight: 400,
-              marginTop: "12px",
-            }}
+            className="block t-lead text-white/70"
+            style={{ marginTop: "12px" }}
           >
             Yours to apply across everything you make.
           </span>
