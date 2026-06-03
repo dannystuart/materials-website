@@ -211,10 +211,13 @@ export function SectionRecipeMobile() {
 
       <div
         ref={rowRef}
-        className="relative mt-12 flex flex-col items-stretch gap-3 px-6"
+        className="no-scrollbar relative mt-12 flex items-center gap-4 overflow-x-auto snap-x snap-mandatory scroll-px-6 px-6"
         data-row="recipe"
       >
-        <div data-reveal="tile">
+        <div
+          data-reveal="tile"
+          className="w-[78vw] max-w-[300px] min-w-0 shrink-0 snap-center"
+        >
           <RecipeInputType
             phrase={phrase}
             typed={typed}
@@ -222,31 +225,33 @@ export function SectionRecipeMobile() {
             variant="mobile"
           />
         </div>
-        <div
-          data-reveal="op"
-          className="flex justify-center"
-          style={{ marginTop: -4, marginBottom: -4 }}
-        >
+        <div data-reveal="op" className="shrink-0">
           <RecipeOperator symbol="+" size="md" />
         </div>
-        <div data-reveal="tile" className="self-center">
+        <div data-reveal="tile" className="shrink-0 snap-center">
           <RecipeCarousel
             materials={materials}
             activeIndex={activeIndex}
             variant="mobile"
           />
         </div>
-        <div
-          data-reveal="op"
-          className="flex justify-center"
-          style={{ marginTop: -4, marginBottom: -4 }}
-        >
+        <div data-reveal="op" className="shrink-0">
           <RecipeOperator symbol="=" size="md" />
         </div>
-        <div data-reveal="tile">
+        <div
+          data-reveal="tile"
+          className="w-[78vw] max-w-[300px] min-w-0 shrink-0 snap-center"
+        >
           <RecipeOutput material={activeMaterial} variant="mobile" />
         </div>
       </div>
+
+      <p className="mt-4 px-6 t-caption text-white/45">
+        Scroll to see the result{" "}
+        <span data-recipe-arrow aria-hidden="true" className="recipe-scroll-arrow inline-block">
+          &rarr;
+        </span>
+      </p>
     </section>
   );
 }

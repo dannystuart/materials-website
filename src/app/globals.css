@@ -318,6 +318,21 @@ html.scroll-restoring body {
   .recipe-caret { animation: none; opacity: 0; }
 }
 
+/* §04 mobile "Scroll to see the result →" — subtle looping nudge inviting
+   the horizontal swipe. Static under reduced motion. */
+.recipe-scroll-arrow {
+  animation: recipe-scroll-arrow-nudge 1.6s ease-in-out infinite;
+}
+
+@keyframes recipe-scroll-arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-scroll-arrow { animation: none; }
+}
+
 .material-shimmer {
   display: inline-block;
   background: linear-gradient(
