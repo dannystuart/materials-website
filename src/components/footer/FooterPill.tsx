@@ -8,7 +8,7 @@ const rootStyle = {
 } as CSSProperties;
 
 const linkClass =
-  "inline-flex items-center gap-1 font-medium text-white/85 hover:text-white transition-colors focus:outline-none focus-visible:text-white";
+  "inline-flex items-center gap-1 py-3 lg:py-0 font-medium text-white/85 hover:text-white transition-colors focus:outline-none focus-visible:text-white";
 
 const dividerClass = "h-5 w-px bg-white/12";
 

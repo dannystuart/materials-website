@@ -228,7 +228,7 @@ export function LibraryPlateStack({ className, compact = false }: Props) {
               onClick={() => select(v)}
               aria-pressed={isActive}
               className={clsx(
-                "rounded-full border px-4 py-2 font-display text-[11.5px] font-semibold uppercase tracking-[0.22em] backdrop-blur-md transition-colors duration-200",
+                "rounded-full border px-4 py-[13px] lg:py-2 font-display text-[11.5px] font-semibold uppercase tracking-[0.22em] backdrop-blur-md transition-colors duration-200",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#010100]",
                 isActive
                   ? "border-white/70 bg-white/[0.18] text-white shadow-[0_4px_18px_rgba(0,0,0,0.45)]"

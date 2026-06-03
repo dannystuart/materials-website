@@ -29,13 +29,17 @@ export function SectionCloseMobile() {
             <div key={pack.variant} className="relative isolate">
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -top-14 left-1/2 -z-10 h-[58%] w-[120%] -translate-x-1/2"
+                className="pointer-events-none absolute -top-12 left-1/2 -z-10 h-[55%] w-[125%] -translate-x-1/2"
                 style={{
                   // rgba(var(),α): the token is comma-separated, so the slash
                   // form rgb(var()/α) would be invalid CSS and drop the colour.
+                  // Bright centre sits just above the card's top edge and blooms
+                  // up into the gap; the lower half is hidden behind the card.
+                  // (0.4 + blur(44px) read as invisible against near-black —
+                  // mobile-reviewer 2026-06-03; tightened to 0.6 + blur(28px).)
                   background:
-                    "radial-gradient(80% 70% at 50% 0%, rgba(var(--atmosphere-blue-close), 0.4) 0%, rgba(var(--atmosphere-blue-close), 0.16) 42%, transparent 72%)",
-                  filter: "blur(44px)",
+                    "radial-gradient(78% 68% at 50% 8%, rgba(var(--atmosphere-blue-close), 0.6) 0%, rgba(var(--atmosphere-blue-close), 0.24) 40%, transparent 74%)",
+                  filter: "blur(28px)",
                 }}
               />
               <PackCard pack={pack} />
