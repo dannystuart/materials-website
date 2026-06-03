@@ -134,7 +134,16 @@ export function LibraryPlateStack({ className, compact = false }: Props) {
   // Scroll-scrubbed entrance: progress 0 → 1 as the stack scrolls into view,
   // 1 → 0 as it scrolls back out.
   useEffect(() => {
-    if (reducedMotion) {
+    // Disable the scroll-scrubbed entrance on phones (<768px) only — it reads as
+    // jank on a small viewport. Tablet (768–1023) + desktop keep it. matchMedia
+    // is read once per effect run, mirroring useMacbookScrub's idiom; a live
+    // 768px crossing is an accepted edge case. Must force the resting pose (not
+    // bare `return`) or `computeTarget` strands the plates at opacity 0.
+    const isPhone =
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches;
+
+    if (reducedMotion || isPhone) {
       progressRef.current = 1;
       applyLayout(false);
       return;
