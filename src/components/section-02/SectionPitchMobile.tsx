@@ -1,9 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { PitchHub } from "./PitchHub";
-import { PitchDesignOutput, PitchAIOutput } from "./PitchOutputs";
-import { PitchMobileOrbits } from "./PitchDiagram";
+import { PitchMobileCarousel } from "./PitchMobileCarousel";
 import { useSectionPointer } from "./useSectionPointer";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { deferGsap } from "@/lib/scrollTrigger";
@@ -28,8 +26,17 @@ export function SectionPitchMobile() {
       const orbits = q('[data-reveal="orbits"]');
       const hub = q('[data-reveal="hub"]');
       const cards = q('[data-reveal="card"]');
+      const connectors = q('[data-reveal="connector"]');
 
-      const all = [eyebrow, headlineLines, lede, orbits, hub, cards].flat();
+      const all = [
+        eyebrow,
+        headlineLines,
+        lede,
+        orbits,
+        hub,
+        cards,
+        connectors,
+      ].flat();
 
       if (reducedMotion) {
         gsap.set(all, {
@@ -112,6 +119,16 @@ export function SectionPitchMobile() {
               stagger: 0.14,
             },
             0.3,
+          )
+          .to(
+            connectors,
+            {
+              opacity: 1,
+              duration: 0.7,
+              ease: "power2.out",
+              stagger: 0.16,
+            },
+            0.45,
           );
       });
     },
@@ -151,24 +168,7 @@ export function SectionPitchMobile() {
         and what you ship keeps the Material&rsquo;s character.
       </p>
 
-      <div className="relative mt-14 flex flex-col items-center gap-10">
-        <div
-          ref={diagramRef}
-          className="relative flex aspect-square w-full max-w-[400px] items-center justify-center"
-        >
-          <PitchMobileOrbits pointer={pointer} />
-          <div data-reveal="hub">
-            <PitchHub size={260} />
-          </div>
-        </div>
-
-        <div data-reveal="card" className="w-full">
-          <PitchDesignOutput />
-        </div>
-        <div data-reveal="card" className="w-full">
-          <PitchAIOutput />
-        </div>
-      </div>
+      <PitchMobileCarousel pointer={pointer} diagramRef={diagramRef} />
     </section>
   );
 }
