@@ -68,7 +68,7 @@ export function FooterMobile() {
       className="relative w-full overflow-hidden bg-hero-bg"
       aria-label="Site footer"
     >
-      <div className="relative h-[clamp(240px,58vw,340px)] w-full">
+      <div className="relative h-[clamp(300px,74vw,380px)] w-full">
         <video
           ref={videoRef}
           className="absolute bottom-0 left-1/2 h-auto w-[94vw] max-w-[500px] -translate-x-1/2"
@@ -120,14 +120,15 @@ export function FooterMobile() {
         </div>
 
         <div className="relative z-20 flex h-full items-start justify-center px-6 pt-[clamp(28px,8vw,44px)]">
-          <MaterialsWordmark className="h-auto w-[200px] text-white" />
+          <MaterialsWordmark className="h-auto w-[172px] text-white" />
         </div>
 
-        <div className="absolute inset-x-0 bottom-[30%] z-10 flex justify-center px-6">
+        <div className="absolute inset-x-0 bottom-[34%] z-10 flex justify-center px-4">
           <FooterPill />
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-6 pb-6 text-center">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-1.5 px-6 pb-6 text-center">
+          <p className="t-caps text-white/35">VANTA SUPPLY</p>
           <p className="t-caps text-white/55">
             © 2026 Materials¹ — Edition 1
           </p>
