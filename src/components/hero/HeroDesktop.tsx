@@ -30,6 +30,9 @@ export function HeroDesktop() {
       <div className="absolute inset-0 z-20">
         <HeroGradients />
       </div>
+      <div className="absolute top-0 inset-x-0 z-30 flex justify-center pt-8">
+        <p className="t-caps text-white/45">VANTA SUPPLY</p>
+      </div>
       <div
         className="absolute top-1/2 left-12 z-30 -translate-y-1/2 min-[1600px]:left-[12vw] min-[2200px]:left-[20vw]"
         data-hero-logo-slot

@@ -80,7 +80,8 @@ export function FooterDesktop() {
           <FooterPill />
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-12 pb-7">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-1.5 px-12 pb-7">
+          <p className="t-caps text-white/35">VANTA SUPPLY</p>
           <p className="t-caps text-white/55">
             © 2026 Materials¹ — Edition 1
           </p>
