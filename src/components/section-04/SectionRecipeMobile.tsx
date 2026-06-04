@@ -129,7 +129,10 @@ export function SectionRecipeMobile() {
               y: 0,
               duration: 0.8,
               ease: "power3.out",
-              stagger: 0.08,
+              // "Pick a Material." and "That's the whole recipe." should land
+              // as two distinct beats, not together — a wider stagger reads as
+              // a deliberate sequence rather than a single reveal.
+              stagger: 0.35,
             },
             `+=${HEADLINE_TYPING_DURATION_S - 0.2}`,
           );
@@ -248,8 +251,8 @@ export function SectionRecipeMobile() {
         </div>
       </div>
 
-      <p className="mt-4 px-6 t-caption text-white/45">
-        Scroll to see the result{" "}
+      <p className="mt-2 px-6 t-body text-center text-white/45">
+        Swipe to see the result{" "}
         <span data-recipe-arrow aria-hidden="true" className="recipe-scroll-arrow inline-block">
           &rarr;
         </span>
