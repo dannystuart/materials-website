@@ -5,6 +5,7 @@ import { useTexture } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { gsap } from "@/lib/gsap";
 import * as THREE from "three";
+import { useIsRendered } from "@/lib/useIsRendered";
 import type { RecipeMaterial } from "./materials";
 
 type Props = {
@@ -399,8 +400,12 @@ export function RecipeCarousel({
   const containerH =
     variant === "desktop" ? CONTAINER_H_DESKTOP : CONTAINER_H_MOBILE;
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const rendered = useIsRendered(wrapperRef);
+
   return (
     <div
+      ref={wrapperRef}
       className="relative shrink-0"
       style={{
         width: activeSize,
@@ -412,26 +417,28 @@ export function RecipeCarousel({
       }}
       aria-hidden="true"
     >
-      <Canvas
-        orthographic
-        camera={{ position: [0, 0, 1000], zoom: 1, near: 0.1, far: 5000 }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          premultipliedAlpha: false,
-          powerPreference: "high-performance",
-        }}
-        dpr={[1, 2]}
-      >
-        <Suspense fallback={null}>
-          <CarouselScene
-            materials={materials}
-            activeIndex={activeIndex}
-            poses={poses}
-            cardSize={activeSize}
-          />
-        </Suspense>
-      </Canvas>
+      {rendered && (
+        <Canvas
+          orthographic
+          camera={{ position: [0, 0, 1000], zoom: 1, near: 0.1, far: 5000 }}
+          gl={{
+            antialias: true,
+            alpha: true,
+            premultipliedAlpha: false,
+            powerPreference: "high-performance",
+          }}
+          dpr={[1, 2]}
+        >
+          <Suspense fallback={null}>
+            <CarouselScene
+              materials={materials}
+              activeIndex={activeIndex}
+              poses={poses}
+              cardSize={activeSize}
+            />
+          </Suspense>
+        </Canvas>
+      )}
     </div>
   );
 }

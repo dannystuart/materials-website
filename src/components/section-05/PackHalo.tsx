@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { clsx } from "@/lib/clsx";
+import { useIsRendered } from "@/lib/useIsRendered";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 
 const RING_COUNT = 3;
@@ -152,8 +153,10 @@ export function PackHalo({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const rendered = useIsRendered(containerRef);
 
   useEffect(() => {
+    if (!rendered) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -275,7 +278,7 @@ export function PackHalo({
       material.dispose();
       renderer.dispose();
     };
-  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, boostRef, reduced]);
+  }, [palette, restingIntensity, viewBox, center, radii, phaseOffset, boostRef, reduced, rendered]);
 
   return (
     <div

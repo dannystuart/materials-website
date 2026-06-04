@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { gsap } from "@/lib/gsap";
+import { useIsRendered } from "@/lib/useIsRendered";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import type {
   ElementCategoryCode,
@@ -28,8 +29,10 @@ export function ElementBox3D({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  const rendered = useIsRendered(containerRef);
 
   useEffect(() => {
+    if (!rendered) return;
     const host = containerRef.current;
     if (!host) return;
     let cancelled = false;
@@ -173,7 +176,7 @@ export function ElementBox3D({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [id, symbol, category, size, reducedMotion]);
+  }, [id, symbol, category, size, reducedMotion, rendered]);
 
   return (
     <div

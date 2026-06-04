@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { clsx } from "@/lib/clsx";
+import { useIsRendered } from "@/lib/useIsRendered";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import type { PointerTargetRef } from "./useSectionPointer";
 
@@ -150,8 +151,10 @@ export function PitchOrbits({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const rendered = useIsRendered(containerRef);
 
   useEffect(() => {
+    if (!rendered) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -271,7 +274,7 @@ export function PitchOrbits({
       material.dispose();
       renderer.dispose();
     };
-  }, [viewBox, center, radii, baseAlphas, pointer, parallax, reduced]);
+  }, [viewBox, center, radii, baseAlphas, pointer, parallax, reduced, rendered]);
 
   return (
     <div
