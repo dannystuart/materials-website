@@ -90,12 +90,16 @@ export function MacbookDemo({ variant }: Props) {
       ? "absolute inset-x-0 top-0 z-20 px-6 pt-[150px] text-center"
       : "relative z-10 px-6 pt-20 pb-16 text-center";
 
-  // The 16:9 source carries empty space below the open laptop; cropping it into
-  // the 2:1 frame with object-bottom anchors that gap to the top, lifting the
-  // laptop high against the floating pill. Desktop centres the crop so the open
-  // laptop sits central in the pinned frame. Mobile is left on object-bottom.
-  const objectPosition =
-    variant === "desktop" ? "object-center" : "object-bottom";
+  // Desktop centres the 16:9 crop in its 2:1 pinned frame so the open laptop
+  // sits central while the lid pushes the caption off the top. Mobile uses a
+  // taller 3:2 frame and scales the source up so the laptop reads near-full
+  // width — its base bleeds past the viewport edges while the central laptop
+  // (the opening) stays large and centred (object-center keeps it framed).
+  const frameAspect = variant === "desktop" ? "aspect-[2/1]" : "aspect-[3/2]";
+  const videoSizing =
+    variant === "desktop"
+      ? "object-center"
+      : "object-center scale-[1.5] origin-center";
 
   return (
     <div
@@ -131,10 +135,10 @@ export function MacbookDemo({ variant }: Props) {
         </p>
       </div>
 
-      <div className="relative aspect-[2/1] w-full overflow-hidden">
+      <div className={`relative ${frameAspect} w-full overflow-hidden`}>
         <video
           ref={videoRef}
-          className={`h-full w-full object-cover ${objectPosition}`}
+          className={`h-full w-full object-cover ${videoSizing}`}
           muted
           playsInline
           preload={preload}

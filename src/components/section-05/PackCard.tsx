@@ -128,7 +128,10 @@ export function PackCard({ pack }: Props) {
           />
         ) : null}
 
-        <div className="relative t-caps text-white/60">
+        {/* The catalog header wraps to two lines on mobile's narrow card; the
+            caps token's 1.0 leading reads cramped there, so loosen it below lg
+            (desktop keeps the single-line token leading). */}
+        <div className="relative t-caps leading-[1.7] lg:leading-none text-white/60">
           {pack.catalogHeader}
         </div>
 
