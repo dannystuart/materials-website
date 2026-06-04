@@ -191,10 +191,18 @@ export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
       </svg>
 
       {/* Swipe carousel — active card centred, next card peeking. The track is
-          relative + z-10 so cards sit above the connector overlay. */}
+          relative + z-10 so cards sit above the connector overlay.
+          overflow-y-hidden is deliberate: `overflow-x: auto` silently promotes
+          `overflow-y` to `auto` (the spec forbids auto-x + visible-y), and the
+          cards' invisible group-hover halo (-inset-20 = 80px) adds phantom
+          vertical overflow. That let touch-drags scroll the track ~80px in Y,
+          clipping cards and jolting the connector lines via the scroll listener.
+          Clipping Y keeps the track horizontal-only; vertical drags bubble to
+          the page. No visual change at rest (the promoted auto already clipped
+          Y at scrollTop 0). */}
       <div
         ref={trackRef}
-        className="no-scrollbar relative z-10 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth [scroll-padding-inline:11%]"
+        className="no-scrollbar relative z-10 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth [scroll-padding-inline:11%]"
       >
         <div
           ref={designCardRef}
