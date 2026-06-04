@@ -84,7 +84,7 @@ export function FloatingCta() {
         <span aria-hidden="true" className="h-5 w-px bg-white/12" />
         <a
           ref={buttonRef}
-          href="#buy"
+          href="https://dannystuart.gumroad.com/l/Materials-Edition-1?utm_source=materials-website&utm_medium=floating-cta&utm_campaign=materials-edition-1"
           data-cta-button
           className="
             cta-focus-ring cta-button

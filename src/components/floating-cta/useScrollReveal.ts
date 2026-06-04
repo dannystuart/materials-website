@@ -24,7 +24,7 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
     const pill = pillRef.current;
     if (!pill) return;
 
-    gsap.set(pill, { opacity: 0, y: -12, pointerEvents: "none" });
+    gsap.set(pill, { opacity: 0, pointerEvents: "none" });
     let visible = false;
     let activeTween: gsap.core.Tween | null = null;
 
@@ -33,13 +33,12 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       visible = true;
       activeTween?.kill();
       if (reducedMotion) {
-        gsap.set(pill, { opacity: 1, y: 0, pointerEvents: "auto" });
+        gsap.set(pill, { opacity: 1, pointerEvents: "auto" });
         return;
       }
       gsap.set(pill, { pointerEvents: "auto" });
       activeTween = gsap.to(pill, {
         opacity: 1,
-        y: 0,
         duration: 0.4,
         ease: "power2.out",
       });
@@ -50,12 +49,11 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       visible = false;
       activeTween?.kill();
       if (reducedMotion) {
-        gsap.set(pill, { opacity: 0, y: -12, pointerEvents: "none" });
+        gsap.set(pill, { opacity: 0, pointerEvents: "none" });
         return;
       }
       activeTween = gsap.to(pill, {
         opacity: 0,
-        y: -12,
         duration: 0.4,
         ease: "power2.out",
         onComplete: () => {
@@ -67,13 +65,20 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
     let threshold = Infinity;
     const computeThreshold = () => {
       const anchor = findVisibleAnchor();
+      // Always require scrolling at least 40% of the viewport before revealing,
+      // regardless of where the pitch section lands (guards against a short hero
+      // pushing the anchor-based threshold to ≤ 0 and showing on page load).
+      const minThreshold = window.innerHeight * 0.4;
       if (!anchor) {
-        threshold = Infinity;
+        threshold = minThreshold;
         return;
       }
       const rect = anchor.getBoundingClientRect();
       const anchorTopAbsolute = rect.top + window.scrollY;
-      threshold = anchorTopAbsolute - window.innerHeight * 0.85;
+      threshold = Math.max(
+        anchorTopAbsolute - window.innerHeight * 0.85,
+        minThreshold,
+      );
     };
 
     const evaluate = () => {
@@ -92,9 +97,7 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
 
     // The hero pin attaches after this effect runs (waits on video metadata
     // + the deferGsap queue), so the initial threshold is computed against
-    // the un-pinned page — pitch is at ~viewportHeight, threshold drops to
-    // ~0.15 * viewportHeight, and the CTA fades in almost immediately on
-    // first scroll. Watch the document height and recompute on growth.
+    // the un-pinned page. Watch the document height and recompute on growth.
     const docHeightObserver = new ResizeObserver(() => {
       computeThreshold();
       evaluate();

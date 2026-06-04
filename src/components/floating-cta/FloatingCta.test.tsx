@@ -8,7 +8,9 @@ describe("FloatingCta", () => {
     expect(screen.getByText(/Materials/)).toBeTruthy();
     const link = screen.getByRole("link", { name: /Buy/i });
     expect(link).toBeTruthy();
-    expect(link.getAttribute("href")).toBe("#buy");
+    expect(link.getAttribute("href")).toContain(
+      "gumroad.com/l/Materials-Edition-1",
+    );
   });
 
   it("exposes a nav landmark labelled Buy", () => {

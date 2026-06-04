@@ -21,7 +21,7 @@ export function HeroMobile() {
       ref={sectionRef}
       data-hero-section
       data-hero-mobile
-      className="relative w-full overflow-hidden bg-hero-bg flex flex-col px-6 pt-12 pb-16 gap-8"
+      className="relative w-full overflow-hidden bg-hero-bg flex flex-col px-6 pt-12 pb-[6.625rem] gap-8"
     >
       <div className="z-30 flex flex-col items-center gap-3">
         <p className="t-caps text-white/45">VANTA SUPPLY</p>
