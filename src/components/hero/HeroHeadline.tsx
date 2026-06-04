@@ -1,13 +1,13 @@
-import { HEADLINE_LINES } from "./headlineLines";
+import { HEADLINE_LINES, type Word } from "./headlineLines";
 import { CreativeWord } from "./icons/CreativeWord";
 
-export function HeroHeadline() {
+export function HeroHeadline({ lines = HEADLINE_LINES }: { lines?: Word[][] }) {
   return (
     <h1
       className="hero-headline font-display font-semibold text-white max-w-[595px]"
       data-hero-headline
     >
-      {HEADLINE_LINES.map((line, lineIdx) => (
+      {lines.map((line, lineIdx) => (
         <span className="block" data-hero-headline-line={lineIdx} key={lineIdx}>
           {line.map((word, wordIdx) =>
             word.type === "svg" ? (

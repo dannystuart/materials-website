@@ -173,6 +173,12 @@ body {
   letter-spacing: -0.033em;
 }
 
+/* Mobile hero centres the headline under the (already-centred) wordmark and
+   video; desktop keeps its left-aligned editorial set. */
+[data-hero-mobile] .hero-headline {
+  text-align: center;
+}
+
 .hero-creative {
   display: inline-block;
   background: linear-gradient(90deg, #A855F7 0%, #F97316 100%);
