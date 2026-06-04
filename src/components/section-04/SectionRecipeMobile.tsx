@@ -209,9 +209,11 @@ export function SectionRecipeMobile() {
         </h2>
       </div>
 
+      {/* overflow-x:auto silently promotes overflow-y to auto, so we clip Y
+          to keep this row horizontal-only (same fix as the §02 carousel). */}
       <div
         ref={rowRef}
-        className="no-scrollbar relative mt-12 flex items-center gap-4 overflow-x-auto snap-x snap-mandatory scroll-px-6 px-6"
+        className="no-scrollbar relative mt-12 flex items-center gap-4 overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-px-6 px-6"
         data-row="recipe"
       >
         <div
