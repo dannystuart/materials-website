@@ -50,16 +50,10 @@ public/videos/*.mov
 .playwright-mcp/
 desktop-*.png
 mobile-*.png
-# Root-level scratch screenshots from build/review cycles — keep out of git
-/cta-*.png
-/pitch-*.png
-/hero-*.png
-/cycle-*.png
-/cycle-mid-*.png
-/smoother-*.png
-/section-*.png
-# Review tooling also dumps .jpeg/.jpg at the repo root — ignore any top-level
-# one (real image assets live under public/ or docs/, never the root).
+# Root-level scratch screenshots from build/review cycles. Real image assets
+# live under public/ (or docs/), never the repo root — so ignore every
+# top-level image to keep review-loop dumps out of git for good.
+/*.png
 /*.jpeg
 /*.jpg
 

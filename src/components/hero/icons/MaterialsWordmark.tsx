@@ -3,7 +3,7 @@ type Props = React.SVGProps<SVGSVGElement>;
 export function MaterialsWordmark(props: Props) {
   return (
     <svg
-      viewBox="0 0 314 64"
+      viewBox="0 0 292 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"

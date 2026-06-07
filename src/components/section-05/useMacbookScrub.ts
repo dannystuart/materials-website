@@ -154,9 +154,17 @@ export function useMacbookScrub({
           },
         });
 
+        // Front-load the scroll onto the start of the clip. A linear ("none")
+        // map spends equal scroll on every second of video, so at a normal
+        // scroll pace the lid cracks open and swings up almost instantly —
+        // the early frames flash past. An ease-in stretches the opening over
+        // more scroll (slow at currentTime 0, accelerating toward scrubDuration)
+        // so the crack-open reads deliberately, even on a quicker scroll, then
+        // hands off to real-time playback near full-open where the lid's own
+        // motion is already settling.
         tl.to(video, {
           currentTime: scrubDuration,
-          ease: "none",
+          ease: "power1.in",
           duration: 1,
           onComplete: startPlayback,
         });

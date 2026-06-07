@@ -200,9 +200,12 @@ export function PitchMobileCarousel({ pointer, diagramRef }: Props) {
           Clipping Y keeps the track horizontal-only; vertical drags bubble to
           the page. No visual change at rest (the promoted auto already clipped
           Y at scrollTop 0). */}
+      {/* -mx-6 breaks the track out of the section's px-6 gutter so it spans
+          the full viewport width — the peeking neighbour cards run to both
+          screen edges instead of being clipped 24px short of them. */}
       <div
         ref={trackRef}
-        className="no-scrollbar relative z-10 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth [scroll-padding-inline:11%]"
+        className="no-scrollbar relative z-10 -mx-6 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto overflow-y-hidden scroll-smooth [scroll-padding-inline:11%]"
       >
         <div
           ref={designCardRef}

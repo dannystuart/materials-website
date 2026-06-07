@@ -15,8 +15,8 @@ export function RecipeInputType({
   typingDone,
   variant = "desktop",
 }: Props) {
-  const fontSize = variant === "desktop" ? 52 : 36;
-  const tracking = variant === "desktop" ? "-1.6px" : "-1.1px";
+  const fontSize = variant === "desktop" ? 52 : 30;
+  const tracking = variant === "desktop" ? "-1.6px" : "-0.9px";
   const rows = wordsWithVisibleChars(phrase, typed.length);
   const lastWithChars = [...rows].reverse().findIndex((r) => r.shown.length > 0);
   const caretRowIdx =

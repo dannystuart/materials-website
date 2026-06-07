@@ -1,0 +1,29 @@
+# What NOT to upload to Vercel. When this file exists, Vercel uses it INSTEAD of
+# .gitignore — so everything heavy/irrelevant must be listed here explicitly.
+# Vercel rebuilds from source and installs deps fresh, so build output and
+# node_modules are never needed in the upload.
+
+# Build output + caches (the .next dev cache holds multi-hundred-MB .sst files
+# that blow past Vercel's 100 MB per-file limit)
+.next
+
+# Dependencies — Vercel installs from the lockfile
+node_modules
+
+# Local metadata
+.vercel
+.git
+
+# Video masters / source exports. The re-encoded outputs in public/videos ship;
+# the masters (220 MB hero master, .mov captures) must not.
+assets-source
+public/videos/*.mov
+
+# Internal tooling + planning docs — not part of the deployed app
+.claude
+docs
+
+# Root-level scratch screenshots from review cycles (real assets live in public/)
+/*.png
+/*.jpg
+/*.jpeg

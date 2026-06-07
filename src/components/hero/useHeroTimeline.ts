@@ -49,9 +49,9 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
               y: 0,
               filter: "blur(0px)",
               ease: "power2.out",
-              duration: 0.15, // 5% → 20% of timeline
+              duration: 0.15, // 22% → 37% of timeline
             },
-            0.05, // start at 5%
+            0.22, // start at 22% — hold the logo back until the scrub is underway
           );
         }
 

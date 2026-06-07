@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { CSSProperties } from "react";
+import { track } from "@vercel/analytics";
 import { useGSAP, gsap } from "@/lib/gsap";
 import { useReducedMotion } from "@/components/hero/useReducedMotion";
 import { useScrollReveal } from "./useScrollReveal";
@@ -85,6 +86,7 @@ export function FloatingCta() {
         <a
           ref={buttonRef}
           href="https://dannystuart.gumroad.com/l/Materials-Edition-1?utm_source=materials-website&utm_medium=floating-cta&utm_campaign=materials-edition-1"
+          onClick={() => track("buy_click", { source: "floating-cta" })}
           data-cta-button
           className="
             cta-focus-ring cta-button

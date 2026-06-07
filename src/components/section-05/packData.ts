@@ -50,7 +50,7 @@ export const PAID_PACK: Pack = {
 
 export const FREE_PACK: Pack = {
   variant: "free",
-  catalogHeader: "DARK MATERIALS · SERIES Dk · 10 SPECIMENS",
+  catalogHeader: "DARK MATERIALS · 10 SPECIMENS",
   name: "Dark Materials",
   tagline: "Ten dark Materials. Free, no email.",
   price: "Free",

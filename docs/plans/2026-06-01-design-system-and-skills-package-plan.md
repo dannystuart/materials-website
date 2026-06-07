@@ -66,7 +66,8 @@ Each session is scoped to run semi-independently with a clear input, output, and
 - **Depends on:** nothing hard; informed by Session 0 if run first, but not blocked by it.
 - **Blocks:** Sessions 2, 3, 4.
 
-### Session 2 — Align the site to the system
+### Session 2 — Align the site to the system ✅ DONE (2026-06-01)
+- **Status:** Complete. Output note at `docs/plans/2026-06-01-session-2-align-output.md`. §02–§06 + footer migrated off inline `style={{}}` / arbitrary `text-[]`/`leading-[]`/`tracking-[]` onto the `.t-*` classes; `min-[1600px]`/`min-[2200px]` → `wide:`/`ultra:`; FAQ `sm:` → `md:`. Computed type verified at 375/768/1440 (matches `design-system.md §2.1` exactly), zero horizontal overflow, tsc + lint + 20 tests green, mobile-reviewer run as the gate. Logged UI/glyph/mockup exceptions documented. Hero §01 untouched (locked).
 - **Goal:** Migrate every section onto the tokens; fix hierarchy so it's *correct*, not just visually okay.
 - **Work:** Replace inline `style={{}}` (§03, §04) and rogue arbitrary values with token-based classes/vars. Make headings descend in true hierarchy across hero / §02 / §03 / §04 / §05, all three formats. No visual regressions intended — this is consolidation, not redesign.
 - **Output:** all sections reference tokens; zero rogue type values.
@@ -118,8 +119,8 @@ Each session is scoped to run semi-independently with a clear input, output, and
 
 | # | Issue | Where | Owning session |
 |---|-------|-------|----------------|
-| 1 | Heading sizes fragmented (56/60/36/40; leading/tracking drift) — **S1 ✅ scale locked** in `design-system.md` (mega 72 · display 56 · h2 44 · h3 32, per-format); section migration → S2 | hero, §03, §04, §05 | 1 → 2 |
-| 2 | Inline `style={{}}` for type | §03, §04 components | 2 |
+| 1 | Heading sizes fragmented (56/60/36/40; leading/tracking drift) — **S1 ✅ scale locked** in `design-system.md`; **S2 ✅ migrated** §02–§06 + footer onto `.t-*` classes; hierarchy verified at 375/768/1440 (see `2026-06-01-session-2-align-output.md`). Hero §01 left locked (its mobile-56 non-scaling → S3). | hero, §03, §04, §05 | 1 → 2 ✅ |
+| 2 | Inline `style={{}}` for type — **S2 ✅ done**: all type inline-styles + arbitrary `text-[]`/`leading-[]`/`tracking-[]` in §02–§06 + footer migrated to `.t-*`; ad-hoc `min-[1600px]`/`min-[2200px]` → `wide:`/`ultra:`, FAQ `sm:` → `md:`. Only logged UI/glyph/mockup exceptions remain (operator glyphs, kinetic typewriter, Figma-plate mockup, pack-card price/inventory/buttons, filter chips, footer pill). | §03, §04 components | 2 ✅ |
 | 3 | ~~Only 2 tokens in `globals.css`~~ — **S1 ✅ DONE**: full token set (`@theme` palette/breakpoints · `:root` type/gradient/atmosphere vars · `.t-*` responsive classes) | `src/app/globals.css` | 1 |
 | 4 | No tablet (`md:`) strategy — binary mobile→`lg:` | all sections | 3 |
 | 5 | §05 macbook video ~375×187px on mobile, illegible | `section-05/MacbookDemo.tsx` | 3 |

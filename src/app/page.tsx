@@ -7,20 +7,22 @@ import { SectionFaq } from "@/components/section-06/SectionFaq";
 import { Footer } from "@/components/footer/Footer";
 import { FloatingCta } from "@/components/floating-cta/FloatingCta";
 import { ScrollRestore } from "@/components/scroll-restore/ScrollRestore";
+import { JsonLd } from "@/components/JsonLd";
 
 export default function HomePage() {
   return (
     <>
+      <JsonLd />
       <ScrollRestore />
-      <main>
+      <main id="main-content">
         <Hero />
         <SectionPitch />
         <SectionLibrary />
         <SectionRecipe />
         <SectionClose />
         <SectionFaq />
-        <Footer />
       </main>
+      <Footer />
       <FloatingCta />
     </>
   );

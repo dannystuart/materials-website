@@ -131,7 +131,7 @@
   .t-caps {
     font-family: var(--font-display), system-ui, sans-serif;
     font-size: var(--fs-caps);
-    line-height: 1;
+    line-height: var(--t-caps-lh, 1);
     letter-spacing: 0.28em;
     font-weight: 500;
     text-transform: uppercase;

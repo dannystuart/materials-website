@@ -8,7 +8,7 @@ const rootStyle = {
 } as CSSProperties;
 
 const linkClass =
-  "inline-flex items-center gap-1 py-3 md:py-0 font-medium whitespace-nowrap text-white/85 hover:text-white transition-colors focus:outline-none focus-visible:text-white";
+  "inline-flex items-center gap-1 py-3 md:py-0 rounded font-medium whitespace-nowrap text-white/85 hover:text-white transition-colors focus:outline-none focus-visible:text-white focus-visible:ring-2 focus-visible:ring-[rgba(83,149,237,0.9)] focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(8,8,12,0.72)]";
 
 const dividerClass = "h-5 w-px bg-white/12";
 
