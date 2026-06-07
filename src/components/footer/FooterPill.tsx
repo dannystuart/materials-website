@@ -66,7 +66,7 @@ export function FooterPill() {
 
           <span aria-hidden="true" className={dividerClass} />
 
-          <a href="mailto:hi@dannystuart.com" className={linkClass}>
+          <a href="mailto:dan@newlayer.co" className={linkClass}>
             <span>Say hi</span>
             <span aria-hidden="true">→</span>
           </a>
