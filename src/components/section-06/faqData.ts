@@ -11,20 +11,20 @@ export const FAQ_ENTRIES: FaqEntry[] = [
     number: "Q01",
     question: "I can generate these in Midjourney myself.",
     answer:
-      "Honestly, yes — you can. The pack is the weekend of prompt-engineering you'd otherwise spend, already done. A consistent style across 160 pieces, no model drift mid-project, and source files you keep when the next Midjourney update changes everything.",
+      "Honestly, yes you can! It takes a tonne of experimenting with prompts and image references, but it's possible. I even explain a simple method to do this in the asset pack so you can generate an infinite amount of Materials.",
   },
   {
     id: "trust",
     number: "Q02",
-    question: "Who's Danny? Is the quality actually real?",
+    question: "Is the quality going to be good enough?",
     answer:
       "Fair. The honest answer is the free pack — it's 10 of these same Materials, rated 4.9★ from 8 verified buyers. If that's not the quality you wanted, the paid pack won't be either. Grab the free one first and decide from there.",
   },
   {
     id: "overkill",
     number: "Q03",
-    question: "160 is overkill — I'll only use a handful.",
+    question: "160 is overkill, I'll only use a handful.",
     answer:
-      "It's not a checklist — it's 160 starting points. Three for a client deck, two as Midjourney style references, one as a Figma fill, another for next month's pitch. If you only ever use five, that's still under $2 each. Use it like a library, not an inbox.",
+      "There is a fairly wide variety in the pack as it has to cater for all types of projects, and different use cases. If you only ever use 10, that's still under $1 each. Remember the Materials are there to help you create even more assets and Materials. It's literally infinite once you get going.",
   },
 ];

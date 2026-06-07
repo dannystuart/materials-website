@@ -4,8 +4,8 @@ import { PitchOutputFigure } from "./PitchOutputFigure";
 export function PitchDesignOutput() {
   return (
     <PitchOutputFigure
-      label="In a design tool"
-      caption="As a background, a surface, a motion bed. Plug it in."
+      label="Design asset"
+      caption="As a background, visual element, scroll driven animations. Plug it in quickly."
     >
       <Image
         src="/example-2.png"
@@ -22,7 +22,7 @@ export function PitchAIOutput() {
   return (
     <PitchOutputFigure
       label="As a style reference"
-      caption="Feed the same source to Midjourney. The character carries."
+      caption="Feed as a reference in any generative AI tool. Works especially well in Midjourney."
       imageScale={1.5}
     >
       <Image

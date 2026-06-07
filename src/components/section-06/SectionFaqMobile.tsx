@@ -14,7 +14,7 @@ export function SectionFaqMobile() {
         id="faq-heading-m"
         className="mt-5 t-h2 text-white"
       >
-        Three honest worries.
+        FAQ
       </h2>
       <p className="mt-4 max-w-[320px] t-caption text-white/55">
         The questions that come up before people buy — answered straight.

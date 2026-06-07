@@ -88,7 +88,9 @@ export function MacbookDemo({ variant }: Props) {
   const captionPosition =
     variant === "desktop"
       ? "absolute inset-x-0 top-0 z-20 px-6 pt-[150px] text-center"
-      : "relative z-10 px-6 pt-20 pb-16 text-center";
+      : // Tight bottom padding so the title sits close to the demo frame (and
+        // the replay CTA centred within it) — reads as one connected unit.
+        "relative z-10 px-6 pt-20 pb-6 text-center";
 
   // Desktop centres the 16:9 crop in its 2:1 pinned frame so the open laptop
   // sits central while the lid pushes the caption off the top. Mobile uses a
@@ -99,7 +101,12 @@ export function MacbookDemo({ variant }: Props) {
   const videoSizing =
     variant === "desktop"
       ? "object-center"
-      : "object-center scale-[1.5] origin-center";
+      : // The laptop is tallest mid-open (~t=1.2). scale-1.5 overflowed the 3:2
+        // frame by ~125px vertically, forcing a clip of either the lid
+        // (origin-center) or the base (origin-top). 1.3 keeps the whole laptop —
+        // lid and base — inside the frame with a few px of margin top and
+        // bottom, while still reading near full-width.
+        "object-center scale-[1.3] origin-center";
 
   return (
     <div
@@ -152,7 +159,12 @@ export function MacbookDemo({ variant }: Props) {
         </video>
 
         <div
-          className={`absolute inset-0 flex flex-col items-center justify-center gap-6 bg-black/40 transition-opacity duration-300 ${
+          className={`absolute inset-0 flex flex-col items-center gap-6 bg-black/40 transition-opacity duration-300 ${
+            // Mobile anchors the CTA near the top of the frame (the video ends
+            // on a dark frame) so "Replay demo" sits close under the title
+            // rather than floating centred — reads as one connected unit.
+            variant === "desktop" ? "justify-center" : "justify-start pt-8"
+          } ${
             overlayShown ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
           aria-hidden={!overlayShown}
@@ -165,7 +177,7 @@ export function MacbookDemo({ variant }: Props) {
             onClick={handlePlay}
             className="rounded-full bg-white px-6 py-3 font-display text-base font-semibold text-black transition-transform hover:scale-[1.03]"
           >
-            {hasPlayed ? "Replay demo" : "Play demo"}
+            {hasPlayed ? "Replay" : "Play demo"}
           </button>
         </div>
       </div>

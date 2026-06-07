@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { PitchHub } from "./PitchHub";
 import { PitchDesignOutput, PitchAIOutput } from "./PitchOutputs";
 import { PitchDiagramBackground } from "./PitchDiagram";
@@ -11,9 +11,25 @@ import { useReducedMotion } from "@/components/hero/useReducedMotion";
 
 export function SectionPitchDesktop() {
   const sectionRef = useRef<HTMLElement>(null);
+  const scaleWrapRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
   const pointer = useSectionPointer(diagramRef);
   const reducedMotion = useReducedMotion();
+
+  // Scale the fixed 1344-wide diagram down to fit the available column so the
+  // right-hand card never runs off-screen below 1440px. Caps at 1.0.
+  useEffect(() => {
+    const wrap = scaleWrapRef.current;
+    if (!wrap) return;
+    const apply = () => {
+      const scale = Math.min(1, wrap.clientWidth / 1344);
+      wrap.style.setProperty("--pitch-scale", String(scale));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, []);
 
   useGSAP(
     () => {
@@ -188,39 +204,57 @@ export function SectionPitchDesktop() {
           >
             Drop it into a design tool as a background or surface. Feed the
             same source to Midjourney as a style reference. Same library, both
-            jobs — and what you ship keeps the Material&rsquo;s character.
+            jobs.
           </p>
         </header>
 
+        {/* Scale-to-fit wrapper: the diagram is authored in a fixed
+            1344×680 coordinate space (cards absolutely positioned against
+            it). The wrapper's width tracks the available column; a
+            ResizeObserver (see effect above) sets --pitch-scale = column /
+            1344 (capped at 1) and the inner box scales by it, so cards,
+            connectors and orbits stay locked together at every viewport from
+            768px up. The aspect-ratio reserves the scaled height so the
+            transformed box leaves no gap or overflow. */}
         <div
-          ref={diagramRef}
-          className="relative mt-30"
-          style={{ height: "680px", width: "1344px" }}
+          ref={scaleWrapRef}
+          className="relative mt-30 w-full"
+          style={{ aspectRatio: "1344 / 680" }}
         >
-          <PitchDiagramBackground pointer={pointer} />
-
           <div
-            data-reveal="card"
-            className="absolute"
-            style={{ top: "8px", left: "0px", width: "360px" }}
+            ref={diagramRef}
+            className="absolute top-0 left-0 origin-top-left"
+            style={{
+              height: "680px",
+              width: "1344px",
+              transform: "scale(var(--pitch-scale, 1))",
+            }}
           >
-            <PitchDesignOutput />
-          </div>
+            <PitchDiagramBackground pointer={pointer} />
 
-          <div
-            data-reveal="hub"
-            className="absolute"
-            style={{ top: "120px", left: "512px", width: "320px" }}
-          >
-            <PitchHub size={320} />
-          </div>
+            <div
+              data-reveal="card"
+              className="absolute"
+              style={{ top: "8px", left: "0px", width: "360px" }}
+            >
+              <PitchDesignOutput />
+            </div>
 
-          <div
-            data-reveal="card"
-            className="absolute"
-            style={{ top: "280px", right: "0px", width: "360px" }}
-          >
-            <PitchAIOutput />
+            <div
+              data-reveal="hub"
+              className="absolute"
+              style={{ top: "120px", left: "512px", width: "320px" }}
+            >
+              <PitchHub size={320} />
+            </div>
+
+            <div
+              data-reveal="card"
+              className="absolute"
+              style={{ top: "280px", right: "0px", width: "360px" }}
+            >
+              <PitchAIOutput />
+            </div>
           </div>
         </div>
       </div>

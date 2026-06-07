@@ -76,7 +76,7 @@ export const LibraryPlate = forwardRef<HTMLDivElement, Props>(function LibraryPl
             </span>
             <span
               className="font-display font-bold text-[#0B0B0E]"
-              style={{ fontSize: "12px", lineHeight: 1 }}
+              style={{ fontSize: "12px", lineHeight: 1, position: "relative", top: "-9px" }}
             >
               1
             </span>

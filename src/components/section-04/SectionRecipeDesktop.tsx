@@ -212,7 +212,7 @@ export function SectionRecipeDesktop() {
               data-reveal="headline-line"
               className="block text-white/70 font-normal"
             >
-              That&rsquo;s the whole recipe.
+              That&rsquo;s the recipe.
             </span>
           </h2>
           <p

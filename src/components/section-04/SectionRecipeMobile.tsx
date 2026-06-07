@@ -205,23 +205,31 @@ export function SectionRecipeMobile() {
           </span>
           <span
             data-reveal="headline-line"
-            className="block text-white/70 font-normal"
+            className="block text-pretty text-white/70 font-normal"
           >
-            That&rsquo;s the whole recipe.
+            That&rsquo;s the recipe.
           </span>
         </h2>
+
+        <p className="mt-6 t-body text-left text-white/55">
+          Swipe to see the result{" "}
+          <span data-recipe-arrow aria-hidden="true" className="recipe-scroll-arrow inline-block">
+            &rarr;
+          </span>
+        </p>
       </div>
 
       {/* overflow-x:auto silently promotes overflow-y to auto, so we clip Y
-          to keep this row horizontal-only (same fix as the §02 carousel). */}
+          to keep this row horizontal-only (same fix as the §02 carousel).
+          No snap: the row scrolls freely (a continuous slider), not stepped. */}
       <div
         ref={rowRef}
-        className="no-scrollbar relative mt-12 flex items-center gap-4 overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-px-6 px-6"
+        className="no-scrollbar relative mt-8 flex items-center gap-4 overflow-x-auto overflow-y-hidden scroll-px-6 px-6"
         data-row="recipe"
       >
         <div
           data-reveal="tile"
-          className="w-[78vw] max-w-[300px] min-w-0 shrink-0 snap-center"
+          className="w-[52vw] max-w-[190px] min-w-0 shrink-0"
         >
           <RecipeInputType
             phrase={phrase}
@@ -233,7 +241,7 @@ export function SectionRecipeMobile() {
         <div data-reveal="op" className="shrink-0">
           <RecipeOperator symbol="+" size="md" />
         </div>
-        <div data-reveal="tile" className="shrink-0 snap-center">
+        <div data-reveal="tile" className="shrink-0">
           <RecipeCarousel
             materials={materials}
             activeIndex={activeIndex}
@@ -245,18 +253,11 @@ export function SectionRecipeMobile() {
         </div>
         <div
           data-reveal="tile"
-          className="w-[78vw] max-w-[300px] min-w-0 shrink-0 snap-center"
+          className="w-[54vw] max-w-[200px] min-w-0 shrink-0"
         >
           <RecipeOutput material={activeMaterial} variant="mobile" />
         </div>
       </div>
-
-      <p className="mt-2 px-6 t-body text-center text-white/45">
-        Swipe to see the result{" "}
-        <span data-recipe-arrow aria-hidden="true" className="recipe-scroll-arrow inline-block">
-          &rarr;
-        </span>
-      </p>
     </section>
   );
 }

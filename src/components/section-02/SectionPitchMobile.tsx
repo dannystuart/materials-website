@@ -164,8 +164,7 @@ export function SectionPitchMobile() {
         className="mt-5 max-w-[40ch] t-body text-white/70"
       >
         Drop it into a design tool as a background or surface. Feed the same
-        source to Midjourney as a style reference. Same library, both jobs —
-        and what you ship keeps the Material&rsquo;s character.
+        source to Midjourney as a style reference. Same library, both jobs.
       </p>
 
       <PitchMobileCarousel pointer={pointer} diagramRef={diagramRef} />
