@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { HeroLogo } from "./HeroLogo";
 import { HeroHeadline } from "./HeroHeadline";
 import { HEADLINE_LINES_MOBILE } from "./headlineLines";
@@ -15,6 +15,18 @@ export function HeroMobile() {
   const reduced = useReducedMotion();
 
   useHeroMobileTimeline({ sectionRef, videoRef, enabled: !reduced });
+
+  // Safety net: if GSAP set opacity:0 but the animation never completes
+  // (e.g. JS errors, certain iOS environments), restore visibility after 2s.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const el = videoRef.current;
+      if (el && el.style.opacity === "0") {
+        el.style.opacity = "1";
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <section
