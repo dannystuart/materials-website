@@ -58,7 +58,7 @@ const jsonLd = {
       name: `${PAID_PACK.name} — Edition 01`,
       description: SITE_DESCRIPTION,
       url: SITE_URL,
-      image: `${SITE_URL}/opengraph-image`,
+      image: `${SITE_URL}/opengraph-image.png`,
       brand: { "@id": organizationId },
       offers: {
         "@type": "Offer",
