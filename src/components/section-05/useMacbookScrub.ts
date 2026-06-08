@@ -34,6 +34,19 @@ export function useMacbookScrub({
 
     const cleanupDeferred = deferGsap(() => {
       const setup = () => {
+        // Off-variant guard. SectionClose mounts BOTH the desktop and mobile
+        // MacbookDemo and toggles them with CSS `display` (hidden lg:block /
+        // block lg:hidden), so both call this hook. The hidden sibling has a
+        // zero-size box; without this guard its `start: "top top"` pin resolves
+        // to scroll 0 and it builds a real pinned scrub trigger at the TOP of
+        // the page — driving (and decode-thrashing) its heavy <video> while
+        // invisible. Measured here in setup() (post-layout) so the box is real:
+        // if the block has no layout box, it's the off-variant — bail before
+        // creating any timeline/trigger. The visible variant has a non-zero
+        // box; reduced-motion already bailed earlier (`enabled`).
+        const box = block.getBoundingClientRect();
+        if (box.width === 0 && box.height === 0) return;
+
         const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
         const scrubPx = isDesktop ? 800 : 500;
         const scrubDuration = Math.min(2, video.duration || 2);
