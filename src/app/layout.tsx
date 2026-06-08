@@ -84,8 +84,8 @@ export default function RootLayout({
         {children}
         <Analytics />
         <SpeedInsights />
-        {process.env.VERCEL_ENV === "production" && (
-          <GoogleAnalytics gaId="G-P1Q5FXR7E8" />
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         )}
       </body>
     </html>
