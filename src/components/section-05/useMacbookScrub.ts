@@ -30,6 +30,7 @@ export function useMacbookScrub({
 
     let cleanupMeta: (() => void) | undefined;
     let cleanupToggle: (() => void) | undefined;
+    let cleanupTeardown: (() => void) | undefined;
     let cancelled = false;
 
     const cleanupDeferred = deferGsap(() => {
@@ -139,30 +140,104 @@ export function useMacbookScrub({
             anticipatePin: 1,
             pinType: "fixed",
             onLeave: (self) => {
+              // Hand off scrub → playback. Start playing immediately so the
+              // demo never stalls, but DEFER the pin teardown until scroll
+              // settles. The teardown (disable(true) → remove the pin-spacer →
+              // re-anchor with scrollBy) shrinks the document by scrubPx; doing
+              // that mid-flick fights iOS momentum scrolling — the content below
+              // leaps up and the scrollBy correction wrestles live momentum,
+              // jerking the page down to the pricing cards. Chrome hides this
+              // because its scroll anchoring silently absorbs the spacer removal
+              // (probe: scrollBy was only -45px, not -500). We wait for the flick
+              // to stop, THEN tear down against a stationary page — no momentum
+              // to fight. See docs/plans/2026-06-08-section05-scrub-bugs.md.
               startPlayback();
-              // disable(true) → revert(true,true) → update(true) rewinds
-              // animation.totalProgress(0), which sets currentTime back to 0.
-              // Capture and restore around it. Same tick = no visible flicker.
-              // See docs/scroll-scrubbed-video-recipe.md.
-              const pin = self.pin as HTMLElement | undefined;
-              const savedTime = video.currentTime;
-              self.disable(true);
-              // disable(true) also reverts the rise-off, snapping the caption
-              // back to its overlay rest (y:0). But playback is starting and the
-              // lid is open — the live screen fills that band — so on desktop,
-              // re-lift it off the top in the SAME tick (no paint between) to
-              // avoid a flash of the heading over the screen. The 'ended' toggle
-              // brings it back to y:0 once the lid closes.
-              if (isDesktop && caption) {
-                gsap.set(caption, { y: UP });
-              }
-              if (Number.isFinite(savedTime) && savedTime > 0) {
-                video.currentTime = savedTime;
-              }
-              if (pin) {
-                const offset = pin.getBoundingClientRect().top;
-                if (offset) window.scrollBy(0, offset);
-              }
+
+              // Idempotent: if a teardown is already pending (e.g. onLeave +
+              // onComplete both fired), keep the first one.
+              if (cleanupTeardown) return;
+
+              const teardown = () => {
+                cleanupTeardown?.();
+                cleanupTeardown = undefined;
+                if (cancelled) return;
+                // disable(true) → revert(true,true) → update(true) rewinds
+                // animation.totalProgress(0), which sets currentTime back to 0.
+                // Capture and restore around it. Same tick = no visible flicker.
+                // Captured HERE (at settle, not at onLeave) because the video has
+                // been playing during the wait, so currentTime has advanced past
+                // scrubDuration — that advanced frame is the one to preserve.
+                // See docs/scroll-scrubbed-video-recipe.md (Bug 6).
+                const pin = self.pin as HTMLElement | undefined;
+                const savedTime = video.currentTime;
+                self.disable(true);
+                // disable(true) also reverts the rise-off, snapping the caption
+                // back to its overlay rest (y:0). But playback is running and the
+                // lid is open — the live screen fills that band — so on desktop,
+                // re-lift it off the top in the SAME tick (no paint between) to
+                // avoid a flash of the heading over the screen. The 'ended'
+                // toggle brings it back to y:0 once the lid closes.
+                if (isDesktop && caption) {
+                  gsap.set(caption, { y: UP });
+                }
+                if (Number.isFinite(savedTime) && savedTime > 0) {
+                  video.currentTime = savedTime;
+                }
+                // Re-anchor: after the spacer is removed the element sits above
+                // viewport top (≈ -scrubPx); scrollBy in the same tick puts it
+                // back where the user was looking — no paint between, no jump,
+                // no gap above the demo on scroll-up (Bug 4).
+                if (pin) {
+                  const offset = pin.getBoundingClientRect().top;
+                  if (offset) window.scrollBy(0, offset);
+                }
+              };
+
+              // Settle detection. iOS Safari doesn't reliably fire `scrollend`,
+              // so the primary signal is a rAF velocity poll: when scrollY stops
+              // changing for a couple of frames, the flick has stopped. We also
+              // listen for `scrollend` where it exists, as a faster path. If the
+              // user scrolls back UP into the trigger range before settling, the
+              // trigger re-enters and re-pins on its own; we cancel the pending
+              // teardown so it doesn't fire against a re-engaged pin (which would
+              // double-shrink the document / strand the spacer).
+              let rafId = 0;
+              let still = 0;
+              let lastY = window.scrollY;
+              const STILL_FRAMES = 3; // ~50ms at 60fps of no movement = settled.
+
+              const finish = () => {
+                window.removeEventListener("scrollend", onScrollEnd);
+                cancelAnimationFrame(rafId);
+                teardown();
+              };
+
+              const onScrollEnd = () => finish();
+
+              const poll = () => {
+                const y = window.scrollY;
+                still = Math.abs(y - lastY) < 0.5 ? still + 1 : 0;
+                lastY = y;
+                // Re-entry guard: if scroll has carried the user back above the
+                // pin end, bail and let the live trigger own the pin again.
+                if (self.scroll() < self.end) {
+                  cleanupTeardown?.();
+                  cleanupTeardown = undefined;
+                  return;
+                }
+                if (still >= STILL_FRAMES) {
+                  finish();
+                  return;
+                }
+                rafId = requestAnimationFrame(poll);
+              };
+
+              cleanupTeardown = () => {
+                window.removeEventListener("scrollend", onScrollEnd);
+                cancelAnimationFrame(rafId);
+              };
+              window.addEventListener("scrollend", onScrollEnd);
+              rafId = requestAnimationFrame(poll);
             },
           },
         });
@@ -269,6 +344,7 @@ export function useMacbookScrub({
       cancelled = true;
       cleanupMeta?.();
       cleanupToggle?.();
+      cleanupTeardown?.();
       cleanupDeferred();
     };
   }, [blockRef, videoRef, enabled]);
