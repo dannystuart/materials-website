@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -83,6 +84,9 @@ export default function RootLayout({
         {children}
         <Analytics />
         <SpeedInsights />
+        {process.env.VERCEL_ENV === "production" && (
+          <GoogleAnalytics gaId="G-P1Q5FXR7E8" />
+        )}
       </body>
     </html>
   );
