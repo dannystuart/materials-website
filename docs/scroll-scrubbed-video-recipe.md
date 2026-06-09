@@ -1,7 +1,7 @@
 # Scroll-scrubbed video recipe
 
 How to drive a `<video>` from scroll position with GSAP ScrollTrigger so it
-feels buttery, without falling into the six bugs we hit getting there.
+feels buttery, without falling into the eight bugs we hit getting there.
 
 This recipe is written to be portable to any project. The two implementations
 that grew this guide are:
@@ -12,18 +12,22 @@ that grew this guide are:
   normally to its end. Optimised for "exact frames." (`src/components/section-05/MacbookDemo.tsx`
   + `useMacbookScrub.ts` in this repo.)
 
-Both share the same pinning fundamentals. They diverge on encoding, scrub
-smoothing, and whether they need an `onLeave` teardown. Decide which one you
-want **before** picking values — they trade off against each other.
+They diverge on encoding, scrub smoothing, and — critically — on *how the
+element pins*. The hero pattern uses GSAP pinning (`pin: true`). The demo
+pattern **must not**: when a scrub ends *inside* the document and hands off to
+normal playback, any pin-spacer teardown changes document height mid-scroll
+and produces a cross-browser handoff jump (Bug 7). The demo pattern pins with
+`position: sticky` + a travel spacer instead. Decide which pattern you want
+**before** picking values — they trade off against each other.
 
 ---
 
 ## Quick decision
 
-| You want… | Pattern | Encoding | `scrub` | Scrub distance | onLeave teardown |
+| You want… | Pattern | Encoding | `scrub` | Scrub distance | Pinning |
 |---|---|---|---|---|---|
-| Long, glide-y intro that fades into other reveals | **Hero** | Default H.264 (sparse keyframes) | `0.5` | `+=3000`-ish | None |
-| Precise frame-by-frame scrub then autoplay | **Demo** | All-keyframes H.264 | `0.3` | `+=500–800` | Yes (see Bugs 3, 4, 6) |
+| Long, glide-y intro that fades into other reveals | **Hero** | Default H.264 (sparse keyframes) | `0.5` | `+=3000`-ish | GSAP `pin: true` (`pinType: "fixed"`) |
+| Precise frame-by-frame scrub then autoplay | **Demo** | All-keyframes H.264 | `0.3` | `+=500–800` | `position: sticky` + travel spacer — **no GSAP pin, no teardown** (see Bug 7) |
 
 If you're not sure, start with **Hero**. It's more forgiving and the heavy
 smoothing hides a lot of imprecision. Reach for **Demo** only if the scroll-
@@ -56,7 +60,10 @@ These apply regardless of which pattern you pick.
 - Always ship a poster — it's what users see while the video buffers and
   during `prefers-reduced-motion`.
 
-### 2. `pinType: "fixed"` (critical)
+### 2. `pinType: "fixed"` (critical — hero pattern only)
+
+> Applies to GSAP-pinned scrubs (Pattern A). Pattern B doesn't use `pin` at
+> all — see B.2.
 
 ```ts
 scrollTrigger: {
@@ -256,32 +263,52 @@ the right format here.
 Provide a 720p variant for mobile (`-vf "scale=1280:-2"`, CRF 30) and an MP4
 poster image.
 
-### B.2 — Trigger config
+### B.2 — Pin with `position: sticky`, not GSAP
+
+> **History:** this section originally used `pin: true` + an elaborate
+> `onLeave` teardown (`disable(true)` + `currentTime` save/restore +
+> `scrollBy` compensation — the Bug 3/4/6 fixes). That teardown is
+> **structurally broken** — the document-height change at the handoff is the
+> jump (Bug 7). Don't resurrect it.
+
+The pin is plain CSS. The block is `position: sticky; top: 0` inside a
+wrapper that is exactly `scrubPx` taller than it, the extra height coming
+from a **real spacer child** (not padding — Bug 8):
+
+```html
+<div class="travel-wrapper relative" style="--scrub-travel: 800px">
+  <div class="demo-block sticky top-0">
+    <!-- caption + video frame -->
+  </div>
+  <!-- collapses to 0 under prefers-reduced-motion -->
+  <div aria-hidden class="motion-safe:h-(--scrub-travel)"></div>
+</div>
+```
+
+The block sticks at the viewport top and travels `scrubPx` natively. The
+travel is real, permanent layout from first paint: the document **never
+changes height**, so there is nothing to tear down, restore, or
+scroll-correct at the handoff. Stick/unstick is compositor-driven, so it
+can't lag an iOS momentum flick the way a JS-timed position swap can.
+
+The ScrollTrigger only maps scroll → `currentTime`:
 
 ```ts
 const tl = gsap.timeline({
   scrollTrigger: {
-    trigger: blockRef.current,
+    // The WRAPPER, not the sticky block — the block's rect moves while
+    // stuck; the wrapper's doesn't.
+    trigger: travelRef.current,
     start: "top top",
     end: `+=${scrubPx}`,    // 800 desktop / 500 mobile worked well
     scrub: 0.3,             // tight smoothing — frames track scroll closely
-    pin: true,
-    pinSpacing: true,
-    pinType: "fixed",
-    anticipatePin: 1,
-    onLeave: (self) => {
-      startPlayback();
-      // See bugs #4 + #6 below.
-      const pin = self.pin as HTMLElement | undefined;
-      const savedTime = video.currentTime;
-      self.disable(true);                                  // revert pin + clear transform
-      if (Number.isFinite(savedTime) && savedTime > 0) {
-        video.currentTime = savedTime;                     // bug #6: undo timeline rewind
-      }
-      if (pin) {
-        const offset = pin.getBoundingClientRect().top;    // bug #4: compensate document shrink
-        if (offset) window.scrollBy(0, offset);
-      }
+    onLeave: () => startPlayback(),   // that's the whole handoff
+    onEnterBack: () => {
+      // Scrolling back up re-sticks the block and the scrub re-takes the
+      // playhead (the lid closes again). Stop playback or the two
+      // write-fight currentTime every tick; re-arm the per-pass played flag.
+      played = false;
+      video.pause();
     },
   },
 });
@@ -305,14 +332,30 @@ Notes:
 - **`scrub: 0.3` not `0.5`.** This pattern needs tighter tracking so the
   scrubbed frame matches the scroll position closely. The hero's `0.5`
   smoothing would feel sluggish here.
+- **The zone is symmetric.** Down: scrub → handoff → playback. Up: re-stick →
+  re-scrub (pause + per-pass flag reset in `onEnterBack`). Because there is
+  no torn-down/frozen state, an empty band around the demo is impossible in
+  every rest state — the old Bug 4 *can't happen*.
+- **Sticky needs a clean ancestor chain.** Any ancestor that creates a scroll
+  container (`overflow: hidden/auto/scroll` on either axis) breaks sticking.
+  `overflow-x: clip` is the sticky-safe way to clip horizontal bleed.
+- **Reduced motion:** the spacer is `motion-safe:` so it collapses to zero —
+  no scrub, no travel, no dead space. The hook bails before creating any
+  trigger.
 
 ---
 
-## The six bugs
+## The eight bugs
 
 These are written down in the order we hit them. The bug names use the
 implementation we found them in (the demo pattern), but Bugs 2, 5, 6 apply to
 the hero pattern as well.
+
+> **Reading order matters for 3 → 4 → 6 → 7.** Each "fix" in that chain
+> patched the previous symptom; Bug 7 is where we learned the whole
+> pin-teardown approach is unfixable and replaced it with sticky positioning
+> (B.2). Bugs 3, 4, 6 are kept for the record — in the sticky architecture
+> they can't occur, because there is no pin to kill, disable, or revert.
 
 ### Bug 1 — Frames stutter during scrub *(demo pattern only)*
 
@@ -467,6 +510,59 @@ controls whether the *scrub smoothing tween* is paused. It does not prevent
 `update(true)` from rewinding the user-supplied timeline. Save/restore is the
 only reliable workaround short of forking ScrollTrigger.
 
+### Bug 7 — The handoff itself jumps (and the teardown can't be fixed)
+
+*(demo pattern only — this is the bug that killed `pin: true` for Pattern B)*
+
+**Symptom:** At the scrub→playback handoff the page visibly jumps — and
+*differently per browser*. Desktop Chrome yanks **up** to the video; iOS
+Safari jerks **down** toward the next section and then fights the user's
+momentum scrolling. The inconsistency across browsers is the tell: you're not
+looking at a layout bug, you're looking at two scroll engines reacting to the
+same mid-scroll document mutation.
+
+**Cause:** The Bug 3/4/6 teardown (`disable(true)` + `scrollBy`) removes the
+pin-spacer at the seam — the document shrinks by `scrubPx` **while the user is
+scrolling**. The compensating `scrollBy` then fights Chrome's scroll anchoring
+on desktop and live momentum on iOS. Headless probes measured the document
+losing exactly `scrubPx` (800/500) with `scrollY` yanked −795/−496 at the
+seam.
+
+**Things that don't fix it:** deferring the teardown until scroll "settles"
+(`scrollend` fires early on discrete scrolls, so it still lands mid-scroll;
+and once the user *has* settled past the seam, the re-anchor target — "demo
+at viewport top" — is simply wrong and drags them back). The correct
+`scrollBy` value depends on where the user is *and* whether momentum is live —
+information you can't reliably have. **Any architecture that reclaims the
+travel height at the seam needs that correction; therefore no such
+architecture can work.**
+
+**Fix:** Make the travel height *permanent layout* so nothing is ever
+reclaimed: `position: sticky` + a real spacer child (see B.2). Constant
+document height ⇒ no correction ⇒ nothing to jump. This also fixes a latent
+cousin bug: the pin-spacer used to be created late (after video metadata +
+fonts), shifting everything below the demo by `scrubPx` *after* first paint.
+
+### Bug 8 — Sticky travel as wrapper padding: the block never sticks
+
+*(demo pattern only)*
+
+**Symptom:** `position: sticky` computes correctly, the wrapper is `scrubPx`
+taller via `padding-bottom`, ScrollTrigger scrubs the video — but the block
+scrolls straight through the zone without ever pinning.
+
+**Cause:** A sticky element is constrained to its containing block, which is
+the parent's **content box**. Padding sits outside the content box, so a
+padding-based travel gives the block exactly zero room to move — sticky is
+honoured, with nowhere to go. Silent: no warning, no error, computed styles
+all look right.
+
+**Fix:** The travel must be **real content** — a spacer child after the
+sticky block (`<div aria-hidden style="height: var(--scrub-travel)">`), or
+equivalently a `::after` with explicit height. Verified by live-DOM probe:
+padding → `demoTop: -400` mid-zone (not stuck); spacer → `demoTop: 0`
+(stuck).
+
 ---
 
 ## Things we tried that didn't work
@@ -477,6 +573,17 @@ only reliable workaround short of forking ScrollTrigger.
 - **`anticipatePin: 2` to "fix fast scroll"** — Bug 5.
 - **`disable(true, true)` to "preserve the animation"** — Bug 6 (flag only
   affects scrub tween, not the user timeline).
+- **`disable(true)` + `scrollBy` teardown in `onLeave`** — Bug 7. Worked in
+  isolation, jumped at the seam in real browsers (Chrome scroll anchoring,
+  iOS momentum).
+- **Deferring that teardown until scroll settles** — Bug 7. `scrollend` fires
+  early on discrete scrolls; and a late re-anchor to "demo at viewport top"
+  is the wrong target once the user has settled elsewhere.
+- **Keeping the freed band and filling it with decoration** — rejected on
+  design: the correct outcome is that the gap doesn't exist, not that it gets
+  decorated.
+- **Sticky travel via wrapper `padding-bottom`** — Bug 8. Sticky constrains
+  to the parent's content box; padding gives zero travel.
 - **VP9/WebM all-keyframes** — 56MB for a 25s clip. Not viable.
 - **`ScrollTrigger.refresh()` from inside a deferred setup** — races other
   deferred triggers in the same Strict Mode mount; throws "undefined.end".
@@ -497,11 +604,13 @@ only reliable workaround short of forking ScrollTrigger.
 ## Cheat sheet
 
 ```
-pinType: "fixed"        — always (when ancestors allow)
-anticipatePin: 1        — always; never higher
+Glide (Pattern A):       pin: true + pinType: "fixed" + anticipatePin: 1
+Scrub-then-play (B):     position: sticky + REAL spacer child (not padding) — no pin, no teardown
+anticipatePin: 1        — never higher (Pattern A only)
 scrub: 0.3 → 0.5        — taste; lower = tight, higher = glide
 end: "+=N"              — short for "precise scrub then play", long for "glide"
+trigger (Pattern B)     — the travel WRAPPER, never the sticky block
 preload: auto/metadata  — desktop/mobile split
 All-keyframes encoding  — only for the precise pattern; sparse fine for glide
-onLeave teardown        — only when scrub ends inside the document (not at end of page)
+onLeave (Pattern B)     — startPlayback() and NOTHING else; onEnterBack pauses + re-arms
 ```

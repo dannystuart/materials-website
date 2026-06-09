@@ -57,6 +57,43 @@ describe("MacbookDemo caption", () => {
     ).toBe("static");
   });
 
+  it("wraps the sticky demo block in a travel wrapper sized from SCRUB_PX", () => {
+    reducedMock.mockReturnValue(false);
+    for (const [variant, px] of [
+      ["mobile", "500px"],
+      ["desktop", "800px"],
+    ] as const) {
+      const { container } = render(<MacbookDemo variant={variant} />);
+      const travel = container.querySelector<HTMLElement>(
+        "[data-macbook-travel]",
+      );
+      const block = container.querySelector<HTMLElement>(
+        "[data-macbook-demo]",
+      );
+      const spacer = container.querySelector<HTMLElement>(
+        "[data-macbook-travel-spacer]",
+      );
+      expect(travel).not.toBeNull();
+      expect(block).not.toBeNull();
+      expect(spacer).not.toBeNull();
+      // The block must sit INSIDE the travel wrapper and be the sticky one —
+      // the wrapper provides the permanent scrub travel (constant document
+      // height; no pin-spacer to tear down at the handoff).
+      expect(travel!.contains(block!)).toBe(true);
+      expect(travel!.style.getPropertyValue("--scrub-travel")).toBe(px);
+      expect(block!.className).toContain("sticky");
+      // The travel MUST be a real spacer child, not wrapper padding — sticky
+      // is constrained to the parent's CONTENT box, so padding gives the block
+      // zero travel room and it never sticks.
+      expect(travel!.className).not.toContain("pb-(--scrub-travel)");
+      expect(travel!.contains(spacer!)).toBe(true);
+      expect(spacer!.className).toContain("motion-safe:h-(--scrub-travel)");
+      // Spacer must come AFTER the sticky block (travel below, not above).
+      const kids = [...travel!.children];
+      expect(kids.indexOf(spacer!)).toBeGreaterThan(kids.indexOf(block!));
+    }
+  });
+
   it("renders the caption as a sibling above the video frame, not inside it", () => {
     reducedMock.mockReturnValue(false);
     const { container } = render(<MacbookDemo variant="desktop" />);

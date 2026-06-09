@@ -1,14 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { useReducedMotion } from "../hero/useReducedMotion";
 import { useMacbookScrub } from "./useMacbookScrub";
+import { SCRUB_PX } from "./scrubConfig";
 
 type Props = { variant: "desktop" | "mobile" };
 
 const CAPTION_WORDS = ["A", "few", "Materials,", "on", "real", "work."];
 
 export function MacbookDemo({ variant }: Props) {
+  const travelRef = useRef<HTMLDivElement | null>(null);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const reduced = useReducedMotion();
@@ -30,11 +33,20 @@ export function MacbookDemo({ variant }: Props) {
     setHasPlayed(true);
   }, []);
 
+  // Scrolling back up into the scrub zone re-takes the playhead (the lid
+  // scrubs closed again) — the replay overlay must not sit over that.
+  const handleScrubReenter = useCallback(() => {
+    setOverlayShown(false);
+  }, []);
+
   useMacbookScrub({
+    travelRef,
     blockRef,
     videoRef,
+    variant,
     enabled: !reduced,
     onScrubComplete: handleScrubComplete,
+    onScrubReenter: handleScrubReenter,
   });
 
   const handleEnded = useCallback(() => {
@@ -109,78 +121,100 @@ export function MacbookDemo({ variant }: Props) {
         "object-center scale-[1.3] origin-center";
 
   return (
+    // Travel wrapper — exactly `scrubPx` taller than the demo block (the
+    // motion-safe spacer below), so the sticky block pins at the viewport top
+    // and travels that distance natively. The travel is real, permanent layout
+    // from first paint: the document never changes height at the scrub→playback
+    // handoff (the old pin-spacer teardown did, and the compensating scroll
+    // correction was the cross-browser handoff jump). Under reduced motion the
+    // spacer collapses (no scrub, no travel) via the motion-safe variant, so
+    // there's never dead space. `--scrub-travel` and the trigger's `end` read
+    // the same SCRUB_PX so CSS travel and scrub range can't drift.
     <div
-      ref={blockRef}
-      className="relative w-full bg-hero-bg"
-      data-macbook-demo
+      ref={travelRef}
+      className="relative w-full"
+      style={{ "--scrub-travel": `${SCRUB_PX[variant]}px` } as CSSProperties}
+      data-macbook-travel
     >
       <div
-        data-demo-caption={reduced ? "static" : "motion"}
-        className={`pointer-events-none ${captionPosition}${
-          reduced ? "" : " will-change-transform"
-        }`}
+        ref={blockRef}
+        className="sticky top-0 w-full bg-hero-bg"
+        data-macbook-demo
       >
-        <span
-          data-demo-caption-eyebrow
-          className="t-caps text-white/70"
-        >
-          APPLIED
-        </span>
-        <p
-          data-demo-caption-line
-          className="mt-2 text-balance t-display text-white"
-        >
-          {CAPTION_WORDS.map((word, i) => (
-            <span
-              key={i}
-              data-demo-caption-word
-              className="mr-[0.25em] inline-block"
-            >
-              {word}
-            </span>
-          ))}
-        </p>
-      </div>
-
-      <div className={`relative ${frameAspect} w-full overflow-hidden`}>
-        <video
-          ref={videoRef}
-          className={`h-full w-full object-cover ${videoSizing}`}
-          muted
-          playsInline
-          preload={preload}
-          poster="/videos/macbook-demo-poster.jpg"
-          onEnded={handleEnded}
-          aria-label="Materials¹ product demo"
-        >
-          {sources.map((s) => (
-            <source key={s.src} src={s.src} type={s.type} />
-          ))}
-        </video>
-
         <div
-          className={`absolute inset-0 flex flex-col items-center gap-6 bg-black/40 transition-opacity duration-300 ${
-            // Mobile anchors the CTA near the top of the frame (the video ends
-            // on a dark frame) so "Replay demo" sits close under the title
-            // rather than floating centred — reads as one connected unit.
-            variant === "desktop" ? "justify-center" : "justify-start pt-8"
-          } ${
-            overlayShown ? "opacity-100" : "pointer-events-none opacity-0"
+          data-demo-caption={reduced ? "static" : "motion"}
+          className={`pointer-events-none ${captionPosition}${
+            reduced ? "" : " will-change-transform"
           }`}
-          aria-hidden={!overlayShown}
         >
-          <p className="font-display text-2xl font-semibold text-white">
-            {hasPlayed ? "Want another look?" : "See the workflow."}
-          </p>
-          <button
-            type="button"
-            onClick={handlePlay}
-            className="rounded-full bg-white px-6 py-3 font-display text-base font-semibold text-black transition-transform hover:scale-[1.03]"
+          <span
+            data-demo-caption-eyebrow
+            className="t-caps text-white/70"
           >
-            {hasPlayed ? "Replay" : "Play demo"}
-          </button>
+            APPLIED
+          </span>
+          <p
+            data-demo-caption-line
+            className="mt-2 text-balance t-display text-white"
+          >
+            {CAPTION_WORDS.map((word, i) => (
+              <span
+                key={i}
+                data-demo-caption-word
+                className="mr-[0.25em] inline-block"
+              >
+                {word}
+              </span>
+            ))}
+          </p>
+        </div>
+
+        <div className={`relative ${frameAspect} w-full overflow-hidden`}>
+          <video
+            ref={videoRef}
+            className={`h-full w-full object-cover ${videoSizing}`}
+            muted
+            playsInline
+            preload={preload}
+            poster="/videos/macbook-demo-poster.jpg"
+            onEnded={handleEnded}
+            aria-label="Materials¹ product demo"
+          >
+            {sources.map((s) => (
+              <source key={s.src} src={s.src} type={s.type} />
+            ))}
+          </video>
+
+          <div
+            className={`absolute inset-0 flex flex-col items-center gap-6 bg-black/40 transition-opacity duration-300 ${
+              // Mobile anchors the CTA near the top of the frame (the video ends
+              // on a dark frame) so "Replay demo" sits close under the title
+              // rather than floating centred — reads as one connected unit.
+              variant === "desktop" ? "justify-center" : "justify-start pt-8"
+            } ${
+              overlayShown ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+            aria-hidden={!overlayShown}
+          >
+            <p className="font-display text-2xl font-semibold text-white">
+              {hasPlayed ? "Want another look?" : "See the workflow."}
+            </p>
+            <button
+              type="button"
+              onClick={handlePlay}
+              className="rounded-full bg-white px-6 py-3 font-display text-base font-semibold text-black transition-transform hover:scale-[1.03]"
+            >
+              {hasPlayed ? "Replay" : "Play demo"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Travel spacer. MUST be real content, not wrapper padding: a sticky
+          element is constrained to its containing block — the parent's CONTENT
+          box — and padding sits outside that, so padding-based travel gives the
+          block zero room and it never sticks (verified by probe). */}
+      <div aria-hidden className="motion-safe:h-(--scrub-travel)" data-macbook-travel-spacer />
     </div>
   );
 }

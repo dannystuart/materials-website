@@ -3,34 +3,71 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { gsap } from "@/lib/gsap";
 import { deferGsap } from "@/lib/scrollTrigger";
+import { SCRUB_PX } from "./scrubConfig";
 
 type Args = {
+  // The travel wrapper — `scrubPx` taller than the block (motion-safe spacer
+  // child rendered by MacbookDemo). It is the scrub trigger.
+  travelRef: RefObject<HTMLDivElement | null>;
+  // The sticky demo block inside the wrapper (caption + video frame).
   blockRef: RefObject<HTMLDivElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
+  variant: "desktop" | "mobile";
   enabled: boolean;
   onScrubComplete?: () => void;
+  // Fired when the user scrolls back up into the scrub zone after a handoff —
+  // the scrub re-takes the playhead, so the replay overlay must hide.
+  onScrubReenter?: () => void;
 };
 
+// §05 scrub architecture — constant document height, CSS-native pinning.
+//
+// The demo block is `position: sticky; top: 0` inside a wrapper that is
+// exactly `scrubPx` taller than it, so the block pins at the viewport top and
+// travels `scrubPx` of scroll natively — no GSAP pin, no pin-spacer. The
+// ScrollTrigger here only maps that scroll range onto video.currentTime
+// (scrub) and the caption rise-off.
+//
+// Why not `pin: true`: pinSpacing reserves scrubPx of document height that the
+// old onLeave teardown then removed at the scrub→playback handoff
+// (disable(true) + scrollBy re-anchor). That height change at the seam needed
+// a scroll correction whose right value depends on where the user has settled
+// and whether momentum is live — it fought Chrome's scroll anchoring on
+// desktop and iOS momentum on mobile (the "jump at the handoff"). Keeping the
+// travel as real, permanent layout means nothing is ever reclaimed: no height
+// change, no correction, nothing to jump. Sticky's stick/unstick is
+// compositor-driven, so it also can't lag a momentum flick the way a JS-timed
+// position swap can. See docs/scroll-scrubbed-video-recipe.md.
+//
+// The zone is symmetric: scrolling back up re-sticks the block and the scrub
+// re-takes the playhead (the lid closes again); playback is re-handed-off on
+// the next pass down. That symmetry is what makes an empty band above the
+// demo impossible in every rest state — there is no torn-down/frozen state.
 export function useMacbookScrub({
+  travelRef,
   blockRef,
   videoRef,
+  variant,
   enabled,
   onScrubComplete,
+  onScrubReenter,
 }: Args) {
-  const cbRef = useRef(onScrubComplete);
+  const cbComplete = useRef(onScrubComplete);
+  const cbReenter = useRef(onScrubReenter);
   useEffect(() => {
-    cbRef.current = onScrubComplete;
-  }, [onScrubComplete]);
+    cbComplete.current = onScrubComplete;
+    cbReenter.current = onScrubReenter;
+  }, [onScrubComplete, onScrubReenter]);
 
   useEffect(() => {
     if (!enabled) return;
+    const travel = travelRef.current;
     const block = blockRef.current;
     const video = videoRef.current;
-    if (!block || !video) return;
+    if (!travel || !block || !video) return;
 
     let cleanupMeta: (() => void) | undefined;
     let cleanupToggle: (() => void) | undefined;
-    let cleanupTeardown: (() => void) | undefined;
     let cancelled = false;
 
     const cleanupDeferred = deferGsap(() => {
@@ -38,18 +75,20 @@ export function useMacbookScrub({
         // Off-variant guard. SectionClose mounts BOTH the desktop and mobile
         // MacbookDemo and toggles them with CSS `display` (hidden lg:block /
         // block lg:hidden), so both call this hook. The hidden sibling has a
-        // zero-size box; without this guard its `start: "top top"` pin resolves
-        // to scroll 0 and it builds a real pinned scrub trigger at the TOP of
-        // the page — driving (and decode-thrashing) its heavy <video> while
-        // invisible. Measured here in setup() (post-layout) so the box is real:
-        // if the block has no layout box, it's the off-variant — bail before
-        // creating any timeline/trigger. The visible variant has a non-zero
-        // box; reduced-motion already bailed earlier (`enabled`).
+        // zero-size box; without this guard its `start: "top top"` trigger
+        // resolves to scroll 0 and it builds a real scrub trigger at the TOP
+        // of the page — driving (and decode-thrashing) its heavy <video>
+        // while invisible. Measured here in setup() (post-layout) so the box
+        // is real: if the block has no layout box, it's the off-variant —
+        // bail before creating any timeline/trigger. The visible variant has
+        // a non-zero box; reduced-motion already bailed earlier (`enabled`).
         const box = block.getBoundingClientRect();
         if (box.width === 0 && box.height === 0) return;
 
-        const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-        const scrubPx = isDesktop ? 800 : 500;
+        // The visible variant matches the breakpoint by construction (CSS
+        // toggles them at lg), so the variant prop is the breakpoint.
+        const isDesktop = variant === "desktop";
+        const scrubPx = SCRUB_PX[variant];
         const scrubDuration = Math.min(2, video.duration || 2);
 
         const caption = block.querySelector<HTMLElement>("[data-demo-caption]");
@@ -63,27 +102,30 @@ export function useMacbookScrub({
         // Geometry is measured once here at setup — a one-shot, early-scroll
         // moment — and intentionally not recomputed on resize.
         const captionH = caption?.offsetHeight ?? 0;
-        // UP distance: lift the caption fully off the top edge of the pinned
+        // UP distance: lift the caption fully off the top edge of the stuck
         // block. Its rest (y:0) is the overlay band above the closed lid, with
         // its box anchored at top:0, so translating up by its own height plus a
         // small buffer clears it past the viewport top — well before the
-        // opening screen rises into that band. Same value drives the rise-off,
-        // the play toggle, and the onLeave re-lift.
+        // opening screen rises into that band. Same value drives the rise-off
+        // and the play toggle.
         const UP = -(captionH + 24);
 
+        // Per-pass playback flag: set on handoff, reset when the user scrolls
+        // back up into the zone (onEnterBack), so the next pass down hands off
+        // again. Within a pass it keeps onComplete + onLeave idempotent.
         let played = false;
         const startPlayback = () => {
           if (played) return;
           played = true;
           video.play().catch(() => {});
-          cbRef.current?.();
+          cbComplete.current?.();
         };
 
         // Reveal (all widths) — words + eyebrow blur-fade up in (hero-style),
         // scrubbed as the section enters. y:0 is the caption's rest position
         // (desktop: overlaying the band above the closed lid; mobile: normal
         // flow above the frame). This reveal only animates the words/eyebrow;
-        // the container transform (y) is owned solely by the pin rise-off +
+        // the container transform (y) is owned solely by the rise-off +
         // play/end toggle below — never touched here.
         if (caption && words && words.length) {
           // Hidden states (set here, never via data-reveal — global
@@ -131,113 +173,30 @@ export function useMacbookScrub({
 
         const tl = gsap.timeline({
           scrollTrigger: {
-            trigger: block,
+            // The wrapper, not the sticky block: the block's rect moves while
+            // stuck, the wrapper's doesn't. start "top top" + end "+=scrubPx"
+            // covers exactly the sticky travel (wrapper is scrubPx taller).
+            trigger: travel,
             start: "top top",
             end: `+=${scrubPx}`,
             scrub: 0.3,
-            pin: true,
-            pinSpacing: true,
-            anticipatePin: 1,
-            pinType: "fixed",
-            onLeave: (self) => {
-              // Hand off scrub → playback. Start playing immediately so the
-              // demo never stalls, but DEFER the pin teardown until scroll
-              // settles. The teardown (disable(true) → remove the pin-spacer →
-              // re-anchor with scrollBy) shrinks the document by scrubPx; doing
-              // that mid-flick fights iOS momentum scrolling — the content below
-              // leaps up and the scrollBy correction wrestles live momentum,
-              // jerking the page down to the pricing cards. Chrome hides this
-              // because its scroll anchoring silently absorbs the spacer removal
-              // (probe: scrollBy was only -45px, not -500). We wait for the flick
-              // to stop, THEN tear down against a stationary page — no momentum
-              // to fight. See docs/plans/2026-06-08-section05-scrub-bugs.md.
-              startPlayback();
-
-              // Idempotent: if a teardown is already pending (e.g. onLeave +
-              // onComplete both fired), keep the first one.
-              if (cleanupTeardown) return;
-
-              const teardown = () => {
-                cleanupTeardown?.();
-                cleanupTeardown = undefined;
-                if (cancelled) return;
-                // disable(true) → revert(true,true) → update(true) rewinds
-                // animation.totalProgress(0), which sets currentTime back to 0.
-                // Capture and restore around it. Same tick = no visible flicker.
-                // Captured HERE (at settle, not at onLeave) because the video has
-                // been playing during the wait, so currentTime has advanced past
-                // scrubDuration — that advanced frame is the one to preserve.
-                // See docs/scroll-scrubbed-video-recipe.md (Bug 6).
-                const pin = self.pin as HTMLElement | undefined;
-                const savedTime = video.currentTime;
-                self.disable(true);
-                // disable(true) also reverts the rise-off, snapping the caption
-                // back to its overlay rest (y:0). But playback is running and the
-                // lid is open — the live screen fills that band — so on desktop,
-                // re-lift it off the top in the SAME tick (no paint between) to
-                // avoid a flash of the heading over the screen. The 'ended'
-                // toggle brings it back to y:0 once the lid closes.
-                if (isDesktop && caption) {
-                  gsap.set(caption, { y: UP });
-                }
-                if (Number.isFinite(savedTime) && savedTime > 0) {
-                  video.currentTime = savedTime;
-                }
-                // Re-anchor: after the spacer is removed the element sits above
-                // viewport top (≈ -scrubPx); scrollBy in the same tick puts it
-                // back where the user was looking — no paint between, no jump,
-                // no gap above the demo on scroll-up (Bug 4).
-                if (pin) {
-                  const offset = pin.getBoundingClientRect().top;
-                  if (offset) window.scrollBy(0, offset);
-                }
-              };
-
-              // Settle detection. iOS Safari doesn't reliably fire `scrollend`,
-              // so the primary signal is a rAF velocity poll: when scrollY stops
-              // changing for a couple of frames, the flick has stopped. We also
-              // listen for `scrollend` where it exists, as a faster path. If the
-              // user scrolls back UP into the trigger range before settling, the
-              // trigger re-enters and re-pins on its own; we cancel the pending
-              // teardown so it doesn't fire against a re-engaged pin (which would
-              // double-shrink the document / strand the spacer).
-              let rafId = 0;
-              let still = 0;
-              let lastY = window.scrollY;
-              const STILL_FRAMES = 3; // ~50ms at 60fps of no movement = settled.
-
-              const finish = () => {
-                window.removeEventListener("scrollend", onScrollEnd);
-                cancelAnimationFrame(rafId);
-                teardown();
-              };
-
-              const onScrollEnd = () => finish();
-
-              const poll = () => {
-                const y = window.scrollY;
-                still = Math.abs(y - lastY) < 0.5 ? still + 1 : 0;
-                lastY = y;
-                // Re-entry guard: if scroll has carried the user back above the
-                // pin end, bail and let the live trigger own the pin again.
-                if (self.scroll() < self.end) {
-                  cleanupTeardown?.();
-                  cleanupTeardown = undefined;
-                  return;
-                }
-                if (still >= STILL_FRAMES) {
-                  finish();
-                  return;
-                }
-                rafId = requestAnimationFrame(poll);
-              };
-
-              cleanupTeardown = () => {
-                window.removeEventListener("scrollend", onScrollEnd);
-                cancelAnimationFrame(rafId);
-              };
-              window.addEventListener("scrollend", onScrollEnd);
-              rafId = requestAnimationFrame(poll);
+            // Scrub → playback handoff. Just start the video — the block
+            // un-sticks on its own as the user scrolls past `end`, and the
+            // travel is permanent layout, so there is nothing to tear down,
+            // restore, or scroll-correct.
+            onLeave: () => startPlayback(),
+            // Playback → scrub re-entry (scrolling back up into the zone).
+            // The scrub timeline re-takes video.currentTime on the next
+            // update, so stop playback (or the two write-fight every tick),
+            // re-arm the per-pass handoff, kill any in-flight caption toggle
+            // tween (the timeline owns the caption inside the zone), and let
+            // the component hide the replay overlay. The playhead snapping
+            // back to the scrub frame is the designed "rewind" of the zone.
+            onEnterBack: () => {
+              played = false;
+              video.pause();
+              if (caption) gsap.killTweensOf(caption);
+              cbReenter.current?.();
             },
           },
         });
@@ -258,10 +217,12 @@ export function useMacbookScrub({
         });
 
         // Rise-off (desktop only) — caption translates UP and off the top edge
-        // over roughly the first 45% of the pinned scrub, so it's clear before
-        // the opening screen rises into its band. Spliced into the pin timeline
+        // over roughly the first 45% of the scrub, so it's clear before the
+        // opening screen rises into its band. Spliced into the scrub timeline
         // at position 0. immediateRender:false so it animates from the live
-        // (y:0 = overlay rest) state. onLeave re-lifts to UP (see above).
+        // (y:0 = overlay rest) state. Past the zone the timeline holds at
+        // progress 1, so the caption stays UP through playback with no extra
+        // bookkeeping; the 'ended' toggle brings it back to y:0.
         if (isDesktop && caption) {
           tl.to(
             caption,
@@ -279,8 +240,8 @@ export function useMacbookScrub({
           // above the centred replay CTA) on end, once the lid has closed.
           // Desktop only. duration 0.5 — settled, deliberate slide.
           // overwrite:"auto" — guards the tick where post-scrub auto-play
-          // (startPlayback → play → UP) coincides with onLeave's re-lift (also
-          // → UP): two writers on the same property.
+          // (startPlayback → play → UP) coincides with the timeline holding UP:
+          // two writers on the same property.
           const onPlay = () => {
             gsap.to(caption, {
               y: UP,
@@ -344,8 +305,7 @@ export function useMacbookScrub({
       cancelled = true;
       cleanupMeta?.();
       cleanupToggle?.();
-      cleanupTeardown?.();
       cleanupDeferred();
     };
-  }, [blockRef, videoRef, enabled]);
+  }, [travelRef, blockRef, videoRef, variant, enabled]);
 }
