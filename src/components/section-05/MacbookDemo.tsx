@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "../hero/useReducedMotion";
 import { useMacbookScrub } from "./useMacbookScrub";
+import { DemoReferencePlate } from "./DemoReferencePlate";
+import { SCRUB_PX } from "./scrubConfig";
 
 type Props = { variant: "desktop" | "mobile" };
 
@@ -112,8 +114,19 @@ export function MacbookDemo({ variant }: Props) {
     <div
       ref={blockRef}
       className="relative w-full bg-hero-bg"
+      // Clearance above the block = the plate's height (one scrub distance), so
+      // the reference plate (absolute bottom-full) has empty room to live in on
+      // the way in and never collides with the section above. After the pin
+      // releases this same margin region is where GSAP parks the retained band,
+      // which the plate then fills. Collapses to 0 under reduced motion (no plate).
+      style={reduced ? undefined : { marginTop: SCRUB_PX[variant] }}
       data-macbook-demo
     >
+      {/* Reference plate — fills the retained pin-travel band directly above the
+          demo (see useMacbookScrub onLeave). Skipped under reduced motion, where
+          there's no pin and therefore no band to fill. */}
+      {!reduced && <DemoReferencePlate variant={variant} />}
+
       <div
         data-demo-caption={reduced ? "static" : "motion"}
         className={`pointer-events-none ${captionPosition}${
