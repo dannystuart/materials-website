@@ -1,13 +1,52 @@
-# §05 iOS scrub regression — ROOT CAUSE FOUND + FIXED (2026-06-10)
+# §05 iOS scrub regression — TWO ROOT CAUSES FOUND + FIXED (2026-06-10)
 
-**Status 2026-06-10: root-caused by measurement on the iOS Simulator and fixed
-on `fix/section-05-ios-scrub`. Awaiting Dan's real-iPhone verification on the
-preview deploy.** An earlier draft of this doc blamed the sparse-keyframe 720p
+**Status 2026-06-10: BOTH root causes measured on the iOS Simulator and fixed
+on `fix/section-05-ios-scrub`. Full correct sequence verified frame-by-frame
+on the deployed preview build with a cold cache. Awaiting Dan's real-iPhone
+verification.** An earlier draft of this doc blamed the sparse-keyframe 720p
 encode; Dan's testimony + git ancestry demoted that to a pre-existing
 aggravator (see "Keyframe defect" below — re-encoded as part of this fix, but
 it is NOT what changed).
 
-## ROOT CAUSE (measured, not theorized)
+This bug needed TWO fixes. Root cause #1 (stale ScrollTrigger zone) was found
+first; Dan re-tested the preview on his iPhone and reported the same symptom
+("it hasn't changed at all"). A second instrumented run on the preview build
+then caught root cause #2 live. Both were real; #1 alone was insufficient
+because #2 independently produces the identical user-visible symptom.
+
+## ROOT CAUSE #2 — iOS ignores `preload="auto"`; video had zero media data in the zone
+
+Measured on the deployed preview build (Simulator, cold cache, HUD with
+`bufEnd`): the video reached the scrub zone at **readyState 1 (HAVE_METADATA),
+buffered end 0** — iOS Safari fetches **no media data** for `preload="auto"`;
+the attribute is treated as a hint and ignored. The warming
+IntersectionObserver (flip `preload` metadata→auto at ~1.5 viewports out) has
+therefore always been a no-op on iOS.
+
+Consequence: every scrub seek landed in an empty buffer (`currentTime` writes
+landed — HUD showed vt advancing 0.128→1.993 with zone Δ:0 — but iOS painted
+the poster/black, having nothing to decode). At handoff, `play()` issued the
+FIRST real media fetch → ~1s of black → playback from ~0. Exactly Dan's
+symptom, with the geometry fix already in place and working.
+
+Why it ever worked for Dan pre-sticky: HTTP disk cache from earlier visits —
+the warming logic is identical pre/post sticky per git history, so a cached
+file masked the dead `preload` flip.
+
+**Fix — the "warm kiss"** (`MacbookDemo.tsx`): a muted playsInline video may
+play programmatically on iOS, so the warming callback now does
+`play().then(pause)` — this opens the real fetch+decode pipeline. Then
+`currentTime = 0` so the rest state matches the poster (the kiss otherwise
+leaves a cracked-open lid). `video.dataset.warming` marks the element so the
+scrub hook's desktop play-listener (caption rise-off) ignores the kiss.
+Guarded to the at-rest state (`paused && currentTime < 0.1`); if `play()` is
+refused (Low Power Mode) it degrades to the old poster-through-the-zone.
+
+Verified (run 4, deployed build, cold cache): buf 0 → **25.22 (entire file)
+before the zone**, closed lid at rest on approach, lid visibly scrubs open
+in-zone with painted frames matching vt, handoff plays in real time.
+
+## ROOT CAUSE #1 (measured, not theorized)
 
 The lead hypothesis below ("zone desync") was correct, and the instrumented
 Simulator run caught the mechanism live:
@@ -35,6 +74,11 @@ Simulator run caught the mechanism live:
 
 ## Fix package (all on `fix/section-05-ios-scrub`)
 
+- `src/components/section-05/MacbookDemo.tsx` — the warm kiss (root cause
+  #2): warming IO callback does `play()→pause()→currentTime=0` with a
+  `data-warming` marker, instead of relying on the dead `preload` flip.
+- `src/components/section-05/useMacbookScrub.ts` — desktop play-listener
+  ignores the kiss (`if (video.dataset.warming) return`).
 - `src/components/hero/HeroVideo.tsx` — `aspect-square` on the mobile video:
   box reserved before poster/metadata decode. (Desktop sizes by height inside
   an absolute container — no flow impact, untouched.)
@@ -56,6 +100,12 @@ Simulator run caught the mechanism live:
 - Simulator (iPhone 17 Pro, iOS Safari engine): zero layout shifts post-fix,
   trigger Δ=0 from creation, scrub advances 0.002→1.813 with `demoTop=0`,
   handoff plays, deep-restore + re-entry re-arm correct.
+- **Run 4 (deployed preview build b17c804, cold cache, frame-by-frame):**
+  cold at glide start (rs:1 buf:0) → warm kiss completes pre-zone (rs:4
+  buf:25.22, vt:0 paused — full file buffered, resting on frame 0) → closed
+  lid at rest on approach → lid scrubs open in-zone (painted frames match
+  vt:0.227→1.194, ACTIVE, Δ:0) → unsticks past end, PLAYING, vt advancing
+  in real time. The complete correct sequence.
 - Playwright WebKit desktop + mobile: PASS. Chromium desktop + mobile: PASS.
 - vitest 27/27 PASS · lint clean · production build PASS.
 - **Outstanding: Dan's real iPhone on the preview deploy — the only true
