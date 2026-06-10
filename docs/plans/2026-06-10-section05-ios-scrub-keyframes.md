@@ -1,9 +1,10 @@
 # §05 iOS scrub regression — TWO ROOT CAUSES FOUND + FIXED (2026-06-10)
 
-**Status 2026-06-10: BOTH root causes measured on the iOS Simulator and fixed
-on `fix/section-05-ios-scrub`. Full correct sequence verified frame-by-frame
-on the deployed preview build with a cold cache. Awaiting Dan's real-iPhone
-verification.** An earlier draft of this doc blamed the sparse-keyframe 720p
+**Status 2026-06-10: CLOSED. Both root causes measured on the iOS Simulator
+and fixed on `fix/section-05-ios-scrub`; full correct sequence verified
+frame-by-frame on the preview build with a cold cache; Dan confirmed on his
+real iPhone ("looks great") and the fix shipped to production.** An earlier
+draft of this doc blamed the sparse-keyframe 720p
 encode; Dan's testimony + git ancestry demoted that to a pre-existing
 aggravator (see "Keyframe defect" below — re-encoded as part of this fix, but
 it is NOT what changed).
@@ -108,8 +109,8 @@ Simulator run caught the mechanism live:
   in real time. The complete correct sequence.
 - Playwright WebKit desktop + mobile: PASS. Chromium desktop + mobile: PASS.
 - vitest 27/27 PASS · lint clean · production build PASS.
-- **Outstanding: Dan's real iPhone on the preview deploy — the only true
-  confirmation.**
+- **Dan's real iPhone on the preview deploy: CONFIRMED 2026-06-10 ("looks
+  great").** Merged to main and deployed to production the same day.
 
 ---
 
