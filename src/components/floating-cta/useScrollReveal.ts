@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { gsap } from "@/lib/gsap";
+import { whenHeroPinSettled } from "@/lib/heroPinSignal";
 import type { RefObject } from "react";
 
 type Args = {
@@ -81,10 +82,36 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       );
     };
 
+    // Desktop's hero pins +=3000px once its video metadata arrives — until
+    // that pin-spacer exists, the pitch anchor sits a single viewport down
+    // and the threshold computed from it belongs to a layout that's about to
+    // grow by the full pin distance (the pill faded in mid-hero on any early
+    // scroll). Hold the reveal until the hero signals its pin is settled.
+    // Mobile's hero never pins and reduced motion never will, so the initial
+    // layout is already final there. Safety timeout: if metadata never
+    // arrives, the pin never attaches either — the un-pinned threshold is
+    // then the correct one, so release the gate rather than lose the CTA.
+    const needsHeroGate =
+      !reducedMotion && window.matchMedia("(min-width: 1024px)").matches;
+    let heroSettled = !needsHeroGate;
+
     const evaluate = () => {
-      if (window.scrollY >= threshold) show();
+      if (heroSettled && window.scrollY >= threshold) show();
       else hide();
     };
+
+    const settleHero = () => {
+      if (heroSettled) return;
+      heroSettled = true;
+      computeThreshold();
+      evaluate();
+    };
+    const unsubscribeHero = needsHeroGate
+      ? whenHeroPinSettled(settleHero)
+      : undefined;
+    const heroSafety = needsHeroGate
+      ? window.setTimeout(settleHero, 4000)
+      : undefined;
 
     computeThreshold();
     evaluate();
@@ -95,9 +122,9 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       evaluate();
     };
 
-    // The hero pin attaches after this effect runs (waits on video metadata
-    // + the deferGsap queue), so the initial threshold is computed against
-    // the un-pinned page. Watch the document height and recompute on growth.
+    // Belt to the hero-pin gate's braces: any later document-height change
+    // (accordion toggles, late media) re-anchors the threshold to the live
+    // layout.
     const docHeightObserver = new ResizeObserver(() => {
       computeThreshold();
       evaluate();
@@ -111,6 +138,8 @@ export function useScrollReveal({ pillRef, reducedMotion }: Args) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       docHeightObserver.disconnect();
+      unsubscribeHero?.();
+      window.clearTimeout(heroSafety);
       activeTween?.kill();
     };
   }, [pillRef, reducedMotion]);

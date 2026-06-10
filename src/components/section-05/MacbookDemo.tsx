@@ -96,13 +96,18 @@ export function MacbookDemo({ variant }: Props) {
             video
               .play()
               .then(() => {
+                delete video.dataset.warming;
+                // If the scrub handed off to real playback while the kiss
+                // was still in flight (slow network + fast scroll), pausing
+                // now would freeze the demo right after its handoff — leave
+                // it alone.
+                if (video.dataset.handedOff) return;
                 video.pause();
                 // The kiss leaves the playhead a few frames in — a cracked-
                 // open lid. Seek back so the rest state shown on approach is
                 // the closed lid (same as the poster) until the scrub takes
                 // over.
                 video.currentTime = 0;
-                delete video.dataset.warming;
               })
               .catch(() => {
                 delete video.dataset.warming;

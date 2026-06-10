@@ -66,7 +66,8 @@ export function useMacbookScrub({
     const video = videoRef.current;
     if (!travel || !block || !video) return;
 
-    let cleanupToggle: (() => void) | undefined;
+    let cleanupCaptionToggle: (() => void) | undefined;
+    let cleanupOwnership: (() => void) | undefined;
     let cancelled = false;
 
     const cleanupDeferred = deferGsap(() => {
@@ -116,13 +117,28 @@ export function useMacbookScrub({
         // and the play toggle.
         const UP = -(captionH + 24);
 
-        // Per-pass playback flag: set on handoff, reset when the user scrolls
-        // back up into the zone (onEnterBack), so the next pass down hands off
-        // again. Within a pass it keeps onComplete + onLeave idempotent.
+        // Playback ownership. `played` flips true when real playback starts
+        // (handoff or the replay button) and back to false when the video
+        // ends or the user scrolls fully above the zone. While true, the
+        // zone is playback-neutral: the scrub stops writing currentTime and
+        // re-entering the zone does NOT pause. The natural place to rest and
+        // watch the demo is just inside the zone end — on iOS, momentum +
+        // re-centring lands there almost every time, and the old
+        // pause-on-enterBack froze the demo on an open-lid frame with no way
+        // to ever reach `ended` (the prod "video never plays after the
+        // scrub" report). The scrub re-takes only once ownership lapses.
         let played = false;
         const startPlayback = () => {
-          if (played) return;
+          if (played) {
+            // Re-crossing the handoff with ownership live — just undo an
+            // iOS offscreen suspension if one happened.
+            if (video.paused && !video.ended) video.play().catch(() => {});
+            return;
+          }
           played = true;
+          // Tells MacbookDemo's warm kiss (play→pause), if still in flight,
+          // not to pause a video that has since really started.
+          video.dataset.handedOff = "1";
           video.play().catch(() => {});
           cbComplete.current?.();
         };
@@ -191,18 +207,27 @@ export function useMacbookScrub({
             // travel is permanent layout, so there is nothing to tear down,
             // restore, or scroll-correct.
             onLeave: () => startPlayback(),
-            // Playback → scrub re-entry (scrolling back up into the zone).
-            // The scrub timeline re-takes video.currentTime on the next
-            // update, so stop playback (or the two write-fight every tick),
-            // re-arm the per-pass handoff, kill any in-flight caption toggle
-            // tween (the timeline owns the caption inside the zone), and let
-            // the component hide the replay overlay. The playhead snapping
-            // back to the scrub frame is the designed "rewind" of the zone.
+            // Scrub re-entry (scrolling back up into the zone). While
+            // playback owns the video, do nothing — see the ownership note
+            // above. Once ownership has lapsed (ended / re-armed), the scrub
+            // re-takes the playhead on the next update, so stop any
+            // playback, kill any in-flight caption toggle tween (the
+            // timeline owns the caption inside the zone), and let the
+            // component hide the replay overlay. The playhead snapping back
+            // to the scrub frame is the designed "rewind" of the zone.
             onEnterBack: () => {
-              played = false;
+              if (played) return;
               video.pause();
               if (caption) gsap.killTweensOf(caption);
               cbReenter.current?.();
+            },
+            // Scrolling fully above the zone releases ownership: stop any
+            // playback still running offscreen below, and the next pass
+            // down scrubs from the closed lid again.
+            onLeaveBack: () => {
+              if (!played) return;
+              played = false;
+              if (!video.ended) video.pause();
             },
           },
         });
@@ -215,10 +240,18 @@ export function useMacbookScrub({
         // so the crack-open reads deliberately, even on a quicker scroll, then
         // hands off to real-time playback near full-open where the lid's own
         // motion is already settling.
-        tl.to(video, {
-          currentTime: scrubDuration,
+        // Tween a proxy, not the video: the timeline keeps mapping scroll
+        // position inside the zone even after the handoff (it's how the
+        // post-ended re-scrub works), so the currentTime writes are gated
+        // on ownership rather than killed.
+        const scrub = { t: 0 };
+        tl.to(scrub, {
+          t: scrubDuration,
           ease: "power1.in",
           duration: 1,
+          onUpdate: () => {
+            if (!played) video.currentTime = scrub.t;
+          },
           onComplete: startPlayback,
         });
 
@@ -230,13 +263,22 @@ export function useMacbookScrub({
         // progress 1, so the caption stays UP through playback with no extra
         // bookkeeping; the 'ended' toggle brings it back to y:0.
         if (isDesktop && caption) {
+          // Same proxy gating as the scrub tween above: while playback owns
+          // the video the caption belongs to the play/ended toggle below
+          // (UP during playback, y:0 after ended) — without the gate,
+          // scrolling back up the zone mid-playback slid the caption down
+          // over the open, playing screen.
+          const cap = { y: 0 };
           tl.to(
-            caption,
+            cap,
             {
               y: UP,
               ease: "power2.in",
               duration: 0.45,
               immediateRender: false,
+              onUpdate: () => {
+                if (!played) gsap.set(caption, { y: cap.y });
+              },
             },
             0,
           );
@@ -270,11 +312,41 @@ export function useMacbookScrub({
           };
           video.addEventListener("play", onPlay);
           video.addEventListener("ended", onEnded);
-          cleanupToggle = () => {
+          cleanupCaptionToggle = () => {
             video.removeEventListener("play", onPlay);
             video.removeEventListener("ended", onEnded);
           };
         }
+
+        // Ownership bookkeeping (all variants). Any real playback start —
+        // handoff or the replay button — takes ownership; `ended` releases
+        // it, so the replay overlay appears and the zone is scrubbable
+        // again. The kiss's fake play is excluded via its marker.
+        const onPlayOwn = () => {
+          if (!video.dataset.warming) played = true;
+        };
+        const onEndedOwn = () => {
+          played = false;
+        };
+        video.addEventListener("play", onPlayOwn);
+        video.addEventListener("ended", onEndedOwn);
+
+        // iOS suspends media that scrolls fully offscreen mid-playback and
+        // leaves it paused with no event the user can see. If playback
+        // still owns the video when the demo comes back into view, resume.
+        const resumeIo = new IntersectionObserver((entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          if (played && video.paused && !video.ended) {
+            video.play().catch(() => {});
+          }
+        });
+        resumeIo.observe(block);
+
+        cleanupOwnership = () => {
+          video.removeEventListener("play", onPlayOwn);
+          video.removeEventListener("ended", onEndedOwn);
+          resumeIo.disconnect();
+        };
       };
 
       // Gate setup() on document.fonts.ready only — the caption's offsetHeight
@@ -305,7 +377,8 @@ export function useMacbookScrub({
 
     return () => {
       cancelled = true;
-      cleanupToggle?.();
+      cleanupCaptionToggle?.();
+      cleanupOwnership?.();
       cleanupDeferred();
     };
   }, [travelRef, blockRef, videoRef, variant, enabled]);

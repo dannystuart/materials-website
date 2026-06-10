@@ -1,6 +1,7 @@
 "use client";
 
 import { useGSAP, gsap, ScrollTrigger } from "@/lib/gsap";
+import { markHeroPinSettled } from "@/lib/heroPinSignal";
 import type { RefObject } from "react";
 
 type Args = {
@@ -12,10 +13,18 @@ type Args = {
 export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
   useGSAP(
     () => {
-      if (!enabled) return;
+      // No pin is coming (reduced motion / missing refs) — the un-pinned
+      // layout IS the final layout, so geometry waiters can proceed.
+      if (!enabled) {
+        markHeroPinSettled();
+        return;
+      }
       const section = sectionRef.current;
       const video = videoRef.current;
-      if (!section || !video) return;
+      if (!section || !video) {
+        markHeroPinSettled();
+        return;
+      }
 
       const setup = () => {
         ScrollTrigger.config({ ignoreMobileResize: true });
@@ -109,10 +118,15 @@ export function useHeroTimeline({ sectionRef, videoRef, enabled }: Args) {
 
       if (video.readyState >= 1 && Number.isFinite(video.duration)) {
         setup();
+        markHeroPinSettled();
       } else {
         const onMeta = () => {
           setup();
           ScrollTrigger.refresh();
+          // The pin-spacer is in the document now — geometry below the hero
+          // is final, so waiters (the floating CTA's reveal threshold) can
+          // measure for real.
+          markHeroPinSettled();
           video.removeEventListener("loadedmetadata", onMeta);
         };
         video.addEventListener("loadedmetadata", onMeta);
