@@ -28,19 +28,27 @@ export function ScrubHud() {
     const buf: Record<string, unknown>[] = [];
     const hud = document.getElementById("scrubhud-readout");
 
+    // Failed batches are re-queued, not dropped — an earlier run lost the
+    // entire load+scrub window to early flush failures, which is exactly the
+    // evidence the HUD exists to capture. keepalive is reserved for the
+    // page-hide beacon: keepalive fetches share a small per-page in-flight
+    // quota that early-load flushes can exhaust.
+    const requeue = (batch: Record<string, unknown>[]) => {
+      buf.unshift(...batch);
+      if (buf.length > 50000) buf.length = 50000;
+    };
     const flush = () => {
       if (!buf.length) return;
-      const body = JSON.stringify(buf.splice(0, buf.length));
+      const batch = buf.splice(0, buf.length);
       try {
         void fetch(SINK, {
           method: "POST",
-          body,
-          keepalive: true,
+          body: JSON.stringify(batch),
           mode: "no-cors",
           headers: { "Content-Type": "text/plain" },
-        }).catch(() => {});
+        }).catch(() => requeue(batch));
       } catch {
-        // sink down — HUD readout still works
+        requeue(batch);
       }
     };
     const iv = window.setInterval(flush, 500);
@@ -153,6 +161,11 @@ export function ScrubHud() {
           vt: +video.currentTime.toFixed(3),
           rs: video.readyState,
           p: video.paused,
+          // End of the first buffered range — 0 means no media data fetched
+          // (the iOS preload="auto"-ignored case the warm kiss exists for).
+          bufEnd: video.buffered.length
+            ? +video.buffered.end(video.buffered.length - 1).toFixed(2)
+            : 0,
           docH: Math.round(document.documentElement.scrollHeight),
           ih: window.innerHeight,
           vvh: window.visualViewport
@@ -167,7 +180,7 @@ export function ScrubHud() {
               s.stStart === null ? "?" : s.travelAbs - s.stStart
             }\n` +
             `demoTop:${s.demoTop} ${s.act ? "ACTIVE" : "idle"} prog:${s.prog}\n` +
-            `vt:${s.vt} rs:${s.rs} ${s.p ? "paused" : "PLAYING"} ih:${s.ih} vvh:${s.vvh}`;
+            `vt:${s.vt} rs:${s.rs} buf:${s.bufEnd} ${s.p ? "paused" : "PLAYING"} ih:${s.ih} vvh:${s.vvh}`;
         }
       } else if (hud) {
         hud.textContent = "scrubhud: waiting for travel/trigger…";

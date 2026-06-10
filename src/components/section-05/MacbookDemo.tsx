@@ -78,6 +78,31 @@ export function MacbookDemo({ variant }: Props) {
         if (entries.some((e) => e.isIntersecting)) {
           setWarmed(true);
           io.disconnect();
+          // iOS Safari ignores preload="auto" — it fetches no media data
+          // until a real play(). Measured on the production build: the video
+          // reached the scrub zone at readyState 1 (metadata only), so every
+          // scrub seek landed in an empty buffer and iOS painted the poster /
+          // black through the whole zone. A muted playsInline video may play
+          // programmatically, so kiss it awake: play → pause opens the
+          // fetch+decode pipeline while the user is still ~1.5 viewports
+          // above. data-warming lets the scrub hook ignore this play event
+          // (its desktop play-listener slides the caption off). Guarded to
+          // the at-rest state so a deep-link mid-zone or live playback is
+          // never disturbed; if play() is refused (e.g. Low Power Mode) we
+          // degrade to today's poster-through-the-zone behaviour.
+          const video = videoRef.current;
+          if (video && video.paused && video.currentTime < 0.1) {
+            video.dataset.warming = "1";
+            video
+              .play()
+              .then(() => {
+                video.pause();
+                delete video.dataset.warming;
+              })
+              .catch(() => {
+                delete video.dataset.warming;
+              });
+          }
         }
       },
       { rootMargin: "0px 0px 150% 0px" },

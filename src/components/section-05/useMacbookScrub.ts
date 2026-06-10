@@ -249,6 +249,10 @@ export function useMacbookScrub({
           // (startPlayback → play → UP) coincides with the timeline holding UP:
           // two writers on the same property.
           const onPlay = () => {
+            // MacbookDemo's buffer-warming kiss (play→pause to make iOS
+            // fetch data) marks the element while it runs — not a real
+            // playback start, so the caption stays put.
+            if (video.dataset.warming) return;
             gsap.to(caption, {
               y: UP,
               ease: "power2.out",
