@@ -43,11 +43,13 @@ type Args = {
 //
 // The scrub is ONE-SHOT. Before the handoff the zone is freely scrubbable in
 // both directions (the lid follows the scroll). The moment real playback
-// starts — handoff or the replay button — the demo is fixed for good: no
+// starts — handoff or the replay button — the demo is done with scroll for
+// good: the pin is retired (the block un-sticks and parks at its
+// end-of-travel offset, pixel-identical, constant document height), no
 // scroll position ever re-takes the playhead, moves the caption, or pauses
-// the video again (the prod "reverse scrub out of nowhere" report). The
-// block still re-sticks inside the zone on the way back up — that's CSS —
-// but its content no longer responds to scroll.
+// the video again (the prod "reverse scrub out of nowhere" and "page stops
+// scrolling on the way back up" reports). Post-handoff the section scrolls
+// as if nothing was ever pinned.
 export function useMacbookScrub({
   travelRef,
   blockRef,
@@ -145,6 +147,15 @@ export function useMacbookScrub({
           // Tells MacbookDemo's warm kiss (play→pause), if still in flight,
           // not to pause a video that has since really started.
           video.dataset.handedOff = "1";
+          // Retire the pin for good. Un-stick the block and park it at its
+          // end-of-travel offset — the exact pixel position sticky holds as
+          // the user crosses the zone end, so the swap is invisible and the
+          // document height never changes. Without this, sticky re-pins the
+          // block on the way back up and the page "stops scrolling" for
+          // scrubPx before releasing — the post-handoff scroll must behave
+          // as if nothing was ever pinned.
+          block.style.position = "relative";
+          block.style.top = `${scrubPx}px`;
           video.play().catch(() => {});
           cbComplete.current?.();
         };
@@ -224,13 +235,6 @@ export function useMacbookScrub({
               video.pause();
               if (caption) gsap.killTweensOf(caption);
               cbReenter.current?.();
-            },
-            // Scrolling fully above the zone parks playback offscreen —
-            // ownership is NOT released (the scrub never re-takes). The
-            // IntersectionObserver below resumes from the same frame when
-            // the demo scrolls back into view.
-            onLeaveBack: () => {
-              if (played && !video.ended) video.pause();
             },
             // Zone-occupancy marker for MacbookDemo's warm kiss: if the kiss
             // resolves while the user is already scrubbing inside the zone
@@ -338,11 +342,11 @@ export function useMacbookScrub({
         };
         video.addEventListener("play", onPlayOwn);
 
-        // Resume parked playback when the demo scrolls back into view —
-        // covers both our deliberate onLeaveBack pause and iOS suspending
-        // media that scrolls fully offscreen mid-playback (which leaves it
-        // paused with no event the user can see). `ended` stays ended: the
-        // replay overlay owns that state.
+        // Playback is never paused on scroll — but iOS suspends media that
+        // scrolls fully offscreen mid-playback (leaving it paused with no
+        // event the user can see), so resume when the demo scrolls back
+        // into view. `ended` stays ended: the replay overlay owns that
+        // state.
         const resumeIo = new IntersectionObserver((entries) => {
           if (!entries.some((e) => e.isIntersecting)) return;
           if (played && video.paused && !video.ended) {
