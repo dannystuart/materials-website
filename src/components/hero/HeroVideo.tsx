@@ -13,7 +13,14 @@ export const HeroVideo = forwardRef<HTMLVideoElement, Props>(function HeroVideo(
   return (
     <video
       ref={ref}
-      className="hero-video w-full h-auto"
+      // aspect-square reserves the box before poster/metadata decode (both the
+      // 720 cut and its poster are 720×720). Without it the element falls back
+      // to the replaced-element default 2:1 whenever intrinsic-size info isn't
+      // available yet, breathing ~±170px of document height under everything
+      // below — which left §05's ScrollTrigger zone permanently stale on iOS
+      // when the trigger was created mid-dip. Desktop sizes by height (85vh,
+      // w-auto) inside an absolute container, so it can't shift the document.
+      className={`hero-video w-full h-auto${isMobile ? " aspect-square" : ""}`}
       muted
       playsInline
       preload="auto"
