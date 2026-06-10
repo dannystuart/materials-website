@@ -66,7 +66,6 @@ export function useMacbookScrub({
     const video = videoRef.current;
     if (!travel || !block || !video) return;
 
-    let cleanupMeta: (() => void) | undefined;
     let cleanupToggle: (() => void) | undefined;
     let cancelled = false;
 
@@ -89,6 +88,13 @@ export function useMacbookScrub({
         // toggles them at lg), so the variant prop is the breakpoint.
         const isDesktop = variant === "desktop";
         const scrubPx = SCRUB_PX[variant];
+        // duration is NaN until metadata arrives (NaN is falsy → 2). Setup
+        // deliberately does NOT wait for metadata: both demo cuts run 25.2s so
+        // the clamp always lands on 2, and gating trigger creation on a network
+        // fetch left the zone unregistered until the user could already be
+        // inside it on slow connections (the iOS production failure). If a
+        // future cut ran shorter than 2s, currentTime writes past duration are
+        // clamped by the element — cosmetic only.
         const scrubDuration = Math.min(2, video.duration || 2);
 
         const caption = block.querySelector<HTMLElement>("[data-demo-caption]");
@@ -267,12 +273,13 @@ export function useMacbookScrub({
         }
       };
 
-      // Gate setup() on BOTH video metadata readiness (for duration) AND
-      // document.fonts.ready — the caption's offsetHeight is measured here, and
-      // reading it before Plus Jakarta Sans (a Google Font) has loaded would use
-      // fallback-font line metrics, drifting both the rise-off (-captionH) and
-      // the DOWN landing (captionH + ...). If the Fonts API is unavailable,
-      // proceed without it.
+      // Gate setup() on document.fonts.ready only — the caption's offsetHeight
+      // is measured in setup(), and reading it before Plus Jakarta Sans (a
+      // Google Font) has loaded would use fallback-font line metrics, drifting
+      // both the rise-off (-captionH) and the DOWN landing (captionH + ...).
+      // If the Fonts API is unavailable, proceed without it. There is no
+      // video-metadata gate (see scrubDuration above): the trigger must exist
+      // before the user can reach the zone, network be damned.
       const whenFontsReady = (run: () => void) => {
         const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
         if (fonts?.ready) {
@@ -289,21 +296,11 @@ export function useMacbookScrub({
         whenFontsReady(setup);
       };
 
-      if (video.readyState >= 1 && Number.isFinite(video.duration)) {
-        runSetup();
-      } else {
-        const onMeta = () => {
-          video.removeEventListener("loadedmetadata", onMeta);
-          runSetup();
-        };
-        video.addEventListener("loadedmetadata", onMeta);
-        cleanupMeta = () => video.removeEventListener("loadedmetadata", onMeta);
-      }
+      runSetup();
     });
 
     return () => {
       cancelled = true;
-      cleanupMeta?.();
       cleanupToggle?.();
       cleanupDeferred();
     };

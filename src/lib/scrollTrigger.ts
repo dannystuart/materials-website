@@ -1,6 +1,6 @@
 "use client";
 
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 // Serialises gsap/ScrollTrigger setup across the entire page: every
 // `deferGsap(setup)` call enqueues its setup, and a single rAF-driven tick
@@ -54,8 +54,39 @@ function pump() {
   window.requestAnimationFrame(tick);
 }
 
+// Stale-zone guard. ScrollTrigger computes every trigger's start/end from the
+// layout at creation/refresh time and only auto-refreshes on resize/load — a
+// layout change AFTER the last refresh (late-decoding media, fonts on a slow
+// network) leaves every zone below the shift permanently offset from the real
+// layout. Measured on iOS: the hero video's box breathing ±177px while its
+// poster decoded left §05's scrub zone 177px stale for the whole session —
+// frozen scrub on a real iPhone. Reserved aspect boxes fix the known shifters
+// at the source; this guard heals whatever still slips through: any change to
+// the document's height after triggers exist schedules one debounced
+// ScrollTrigger.refresh() once the layout settles. Scrolling itself never
+// changes document height (§05's travel is permanent layout), so this can't
+// fire mid-scrub; it does fire after the FAQ accordion toggles, which is a
+// refresh ScrollTrigger wants anyway.
+let shiftGuardArmed = false;
+
+function armLayoutShiftGuard() {
+  if (shiftGuardArmed || typeof window === "undefined") return;
+  shiftGuardArmed = true;
+  let lastHeight = document.documentElement.scrollHeight;
+  let debounce = 0;
+  const observer = new ResizeObserver(() => {
+    const height = document.documentElement.scrollHeight;
+    if (Math.abs(height - lastHeight) < 2) return;
+    lastHeight = height;
+    window.clearTimeout(debounce);
+    debounce = window.setTimeout(() => ScrollTrigger.refresh(), 250);
+  });
+  observer.observe(document.body);
+}
+
 export function deferGsap(setup: () => void): () => void {
   if (typeof window === "undefined") return () => {};
+  armLayoutShiftGuard();
 
   let ctx: gsap.Context | null = null;
   let cancelled = false;
