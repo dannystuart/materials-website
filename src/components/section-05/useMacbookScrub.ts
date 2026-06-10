@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { deferGsap } from "@/lib/scrollTrigger";
 import { SCRUB_PX } from "./scrubConfig";
 
@@ -50,6 +50,17 @@ type Args = {
 // the video again (the prod "reverse scrub out of nowhere" and "page stops
 // scrolling on the way back up" reports). Post-handoff the section scrolls
 // as if nothing was ever pinned.
+//
+// The consumed travel is then RECLAIMED. Retiring the pin leaves scrubPx of
+// dead space above the block (the distance the pin travelled), which read as
+// a huge black gap between sections when scrolling back up. It can't be
+// removed at the handoff itself — that's the document-height-change-under-a-
+// live-scroll jump bug all over again — so it collapses at the first safe
+// moment after playback starts: scrolling has gone quiet (or the whole
+// section is below the viewport, where layout changes are invisible), the
+// seam is fully offscreen, and the scroll position is re-anchored in the
+// same task so not a pixel moves on screen. After the reclaim the section is
+// plain static layout with no gap.
 export function useMacbookScrub({
   travelRef,
   blockRef,
@@ -136,6 +147,70 @@ export function useMacbookScrub({
         // `ended`/leave-above let scrolling up replay the scrub in reverse
         // over a demo the user had already watched.
         let played = false;
+
+        // Travel reclaim (see the architecture comment up top). Collapsing
+        // the spacer moves the block and everything below it up by scrubPx,
+        // so it only runs when that shift is invisible:
+        // - "above": the gap sits fully above the viewport (the user is at
+        //   or below the demo). Everything they can see shifts up scrubPx,
+        //   so the scroll position is re-anchored by the same amount in the
+        //   same task — net zero pixels moved. Scroll must be QUIET first:
+        //   an absolute scrollTo under live momentum is the original
+        //   handoff-jump bug.
+        // - "below": the whole section is below the viewport (the user
+        //   scrolled back above it). Nothing they can see moves and the
+        //   scroll position stays valid, so this is safe even mid-scroll.
+        // If the seam is on screen (parked mid-zone), wait — the next
+        // scroll re-schedules.
+        let reclaimed = false;
+        let reclaimTimer: number | undefined;
+        const reclaimState = () => {
+          // 2px tolerance on both boundaries: scroll positions land on
+          // whole device pixels while the measured geometry is fractional,
+          // so a user resting exactly at the handoff point can sit a
+          // sub-pixel short of "above" forever (measured: 0.07px on
+          // mobile). The sliver this admits is gap-black on a black page.
+          const rect = travel.getBoundingClientRect();
+          if (rect.top + scrubPx <= 2) return "above";
+          if (rect.top >= window.innerHeight - 2) return "below";
+          return "visible";
+        };
+        const reclaimTravel = (state: "above" | "below") => {
+          reclaimed = true;
+          window.clearTimeout(reclaimTimer);
+          window.removeEventListener("scroll", onReclaimScroll);
+          const y = window.scrollY;
+          // Back into flow at the wrapper top (the sticky class is inert
+          // once the spacer is gone — zero slack to travel).
+          block.style.position = "";
+          block.style.top = "";
+          travel.style.setProperty("--scrub-travel", "0px");
+          if (state === "above") window.scrollTo(0, y - scrubPx);
+          // Triggers below the demo measured the taller layout — re-anchor
+          // them to the reclaimed one. Quiet moment, so this can't fight a
+          // live scroll.
+          ScrollTrigger.refresh();
+        };
+        const onReclaimQuiet = () => {
+          if (reclaimed) return;
+          const state = reclaimState();
+          if (state === "visible") return;
+          reclaimTravel(state);
+        };
+        const onReclaimScroll = () => {
+          if (reclaimed) return;
+          if (reclaimState() === "below") {
+            reclaimTravel("below");
+            return;
+          }
+          window.clearTimeout(reclaimTimer);
+          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+        };
+        const armTravelReclaim = () => {
+          window.addEventListener("scroll", onReclaimScroll, { passive: true });
+          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+        };
+
         const startPlayback = () => {
           if (played) {
             // Re-crossing the handoff with ownership live — just undo an
@@ -156,6 +231,7 @@ export function useMacbookScrub({
           // as if nothing was ever pinned.
           block.style.position = "relative";
           block.style.top = `${scrubPx}px`;
+          armTravelReclaim();
           video.play().catch(() => {});
           cbComplete.current?.();
         };
@@ -358,6 +434,8 @@ export function useMacbookScrub({
         cleanupOwnership = () => {
           video.removeEventListener("play", onPlayOwn);
           resumeIo.disconnect();
+          window.clearTimeout(reclaimTimer);
+          window.removeEventListener("scroll", onReclaimScroll);
         };
       };
 
