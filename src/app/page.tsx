@@ -8,6 +8,7 @@ import { Footer } from "@/components/footer/Footer";
 import { FloatingCta } from "@/components/floating-cta/FloatingCta";
 import { ScrollRestore } from "@/components/scroll-restore/ScrollRestore";
 import { JsonLd } from "@/components/JsonLd";
+import { ScrubHud } from "@/components/dev/ScrubHud";
 
 export default function HomePage() {
   return (
@@ -24,6 +25,7 @@ export default function HomePage() {
       </main>
       <Footer />
       <FloatingCta />
+      <ScrubHud />
     </>
   );
 }
