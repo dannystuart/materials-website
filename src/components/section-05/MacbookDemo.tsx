@@ -97,6 +97,11 @@ export function MacbookDemo({ variant }: Props) {
               .play()
               .then(() => {
                 video.pause();
+                // The kiss leaves the playhead a few frames in — a cracked-
+                // open lid. Seek back so the rest state shown on approach is
+                // the closed lid (same as the poster) until the scrub takes
+                // over.
+                video.currentTime = 0;
                 delete video.dataset.warming;
               })
               .catch(() => {
