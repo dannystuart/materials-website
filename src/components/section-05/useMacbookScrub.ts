@@ -44,23 +44,30 @@ type Args = {
 // The scrub is ONE-SHOT. Before the handoff the zone is freely scrubbable in
 // both directions (the lid follows the scroll). The moment real playback
 // starts — handoff or the replay button — the demo is done with scroll for
-// good: the pin is retired (the block un-sticks and parks at its
-// end-of-travel offset, pixel-identical, constant document height), no
-// scroll position ever re-takes the playhead, moves the caption, or pauses
-// the video again (the prod "reverse scrub out of nowhere" and "page stops
-// scrolling on the way back up" reports). Post-handoff the section scrolls
-// as if nothing was ever pinned.
+// good: no scroll position ever re-takes the playhead, moves the caption, or
+// pauses the video again (the prod "reverse scrub out of nowhere" and "page
+// stops scrolling on the way back up" reports — both were the SCRUB still
+// acting post-handoff, not the pin itself).
 //
-// The consumed travel is then RECLAIMED. Retiring the pin leaves scrubPx of
-// dead space above the block (the distance the pin travelled), which read as
-// a huge black gap between sections when scrolling back up. It can't be
-// removed at the handoff itself — that's the document-height-change-under-a-
-// live-scroll jump bug all over again — so it collapses at the first safe
-// moment after playback starts: scrolling has gone quiet (or the whole
-// section is below the viewport, where layout changes are invisible), the
-// seam is fully offscreen, and the scroll position is re-anchored in the
-// same task so not a pixel moves on screen. After the reclaim the section is
-// plain static layout with no gap.
+// The pin is NOT retired at the handoff — sticky is the gap-guard. The pin's
+// travel leaves scrubPx of vacated space above the block, and on iOS there
+// is no JS moment near a gesture that can safely remove it: a same-task
+// scrollTo re-anchor probes clean on desktop, but the iOS compositor stomps
+// programmatic scrolls around live touches/momentum, so the height change
+// lands without its compensation and the page visibly drops to the next
+// section (two real-device reports — eager collapse at the handoff in round
+// 1, eager collapse on turn-back/touchstart in round 4). While sticky is
+// alive the vacated region is geometrically unseeable instead: scrolling
+// back up re-pins the block at the viewport top (compositor-native, no JS in
+// the path) and repays the travel 1:1, so the previous section is always
+// directly above the pinned block — never a gap, at any scroll speed, under
+// any momentum. The spacer then collapses only in provably-invisible states,
+// on a scroll-quiet timer (see the reclaim block below). The accepted cost:
+// a user who turns straight back up without ever pausing feels the demo hold
+// at the viewport top while the travel repays — the same hold as the way in,
+// with the video playing. Gap, snap, and hold are the only three behaviours
+// the consumed travel can produce on the way up; the first two are rejected
+// on real-device evidence, and the hold only reaches users who never rest.
 export function useMacbookScrub({
   travelRef,
   blockRef,
@@ -149,66 +156,102 @@ export function useMacbookScrub({
         let played = false;
 
         // Travel reclaim (see the architecture comment up top). Collapsing
-        // the spacer moves the block and everything below it up by scrubPx,
-        // so it only runs when that shift is invisible:
-        // - "above": the gap sits fully above the viewport (the user is at
-        //   or below the demo). Everything they can see shifts up scrubPx,
-        //   so the scroll position is re-anchored by the same amount in the
-        //   same task — net zero pixels moved. Scroll must be QUIET first:
-        //   an absolute scrollTo under live momentum is the original
-        //   handoff-jump bug.
-        // - "below": the whole section is below the viewport (the user
-        //   scrolled back above it). Nothing they can see moves and the
-        //   scroll position stays valid, so this is safe even mid-scroll.
-        // If the seam is on screen (parked mid-zone), wait — the next
-        // scroll re-schedules.
+        // the spacer moves the block's flow position and everything below
+        // the wrapper up by scrubPx, so it only ever runs in states where
+        // nothing the user can see moves — checked on a scroll-quiet timer,
+        // NEVER eagerly during a gesture: rounds 1 and 4 both proved on
+        // real iPhones that the iOS compositor stomps any programmatic
+        // scroll issued near a live touch or momentum, turning the
+        // "compensated" collapse into a visible drop. The two safe states:
+        // - "above": the gap sits fully at/above the viewport top (the
+        //   user rested at or below the handoff point — the normal
+        //   watching-the-demo rest). Collapse, then re-anchor the scroll
+        //   position by the same scrubPx in the same task: the block and
+        //   everything below it hold pixel-fixed. Safe only at true rest,
+        //   so the quiet timer also re-arms while a finger is down.
+        // - "clear": the block sits at the wrapper top (sticky repaid the
+        //   travel on the way up, or the page restored/jumped above the
+        //   section) AND the spacer plus everything after the wrapper sits
+        //   below the viewport bottom. Nothing visible moves and the
+        //   scroll position stays valid — no re-anchor, nothing for iOS to
+        //   stomp. This is also where the pin retires: with zero travel
+        //   left the sticky class goes inert.
+        // Anywhere else (mid-repay hold, seam on screen after a deep
+        // link): wait — sticky guarantees the gap itself can never be
+        // revealed in the meantime, so waiting costs nothing visible.
         let reclaimed = false;
         let reclaimTimer: number | undefined;
-        const reclaimState = () => {
-          // 2px tolerance on both boundaries: scroll positions land on
+        let touchActive = false;
+        const reclaimState = (): "above" | "clear" | "wait" => {
+          // 2px tolerance on all boundaries: scroll positions land on
           // whole device pixels while the measured geometry is fractional,
           // so a user resting exactly at the handoff point can sit a
           // sub-pixel short of "above" forever (measured: 0.07px on
           // mobile). The sliver this admits is gap-black on a black page.
           const rect = travel.getBoundingClientRect();
           if (rect.top + scrubPx <= 2) return "above";
-          if (rect.top >= window.innerHeight - 2) return "below";
-          return "visible";
+          if (
+            rect.top >= -2 &&
+            rect.bottom - scrubPx >= window.innerHeight - 2
+          ) {
+            return "clear";
+          }
+          return "wait";
         };
-        const reclaimTravel = (state: "above" | "below") => {
+        const armReclaimTimer = () => {
+          window.clearTimeout(reclaimTimer);
+          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+        };
+        const reclaimTravel = (state: "above" | "clear") => {
           reclaimed = true;
           window.clearTimeout(reclaimTimer);
           window.removeEventListener("scroll", onReclaimScroll);
+          window.removeEventListener("touchstart", onReclaimTouchStart);
+          window.removeEventListener("touchend", onReclaimTouchEnd);
+          window.removeEventListener("touchcancel", onReclaimTouchEnd);
           const y = window.scrollY;
-          // Back into flow at the wrapper top (the sticky class is inert
-          // once the spacer is gone — zero slack to travel).
-          block.style.position = "";
-          block.style.top = "";
           travel.style.setProperty("--scrub-travel", "0px");
           if (state === "above") window.scrollTo(0, y - scrubPx);
           // Triggers below the demo measured the taller layout — re-anchor
-          // them to the reclaimed one. Quiet moment, so this can't fight a
-          // live scroll.
+          // them to the reclaimed one.
           ScrollTrigger.refresh();
         };
         const onReclaimQuiet = () => {
           if (reclaimed) return;
+          if (touchActive) {
+            // A finger is down — scrollY is not ours to write. Re-check
+            // after it lifts (touchend also re-arms; this covers a held
+            // still finger outliving the timer).
+            armReclaimTimer();
+            return;
+          }
           const state = reclaimState();
-          if (state === "visible") return;
+          if (state === "wait") return;
           reclaimTravel(state);
         };
         const onReclaimScroll = () => {
           if (reclaimed) return;
-          if (reclaimState() === "below") {
-            reclaimTravel("below");
-            return;
-          }
-          window.clearTimeout(reclaimTimer);
-          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+          armReclaimTimer();
+        };
+        const onReclaimTouchStart = () => {
+          touchActive = true;
+        };
+        const onReclaimTouchEnd = () => {
+          touchActive = false;
+          if (!reclaimed) armReclaimTimer();
         };
         const armTravelReclaim = () => {
           window.addEventListener("scroll", onReclaimScroll, { passive: true });
-          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+          window.addEventListener("touchstart", onReclaimTouchStart, {
+            passive: true,
+          });
+          window.addEventListener("touchend", onReclaimTouchEnd, {
+            passive: true,
+          });
+          window.addEventListener("touchcancel", onReclaimTouchEnd, {
+            passive: true,
+          });
+          armReclaimTimer();
         };
 
         const startPlayback = () => {
@@ -222,15 +265,11 @@ export function useMacbookScrub({
           // Tells MacbookDemo's warm kiss (play→pause), if still in flight,
           // not to pause a video that has since really started.
           video.dataset.handedOff = "1";
-          // Retire the pin for good. Un-stick the block and park it at its
-          // end-of-travel offset — the exact pixel position sticky holds as
-          // the user crosses the zone end, so the swap is invisible and the
-          // document height never changes. Without this, sticky re-pins the
-          // block on the way back up and the page "stops scrolling" for
-          // scrubPx before releasing — the post-handoff scroll must behave
-          // as if nothing was ever pinned.
-          block.style.position = "relative";
-          block.style.top = `${scrubPx}px`;
+          // The pin is deliberately NOT retired here. The block just rests
+          // at sticky's end-of-travel clamp — pixel-identical to a parked
+          // pose — and sticky stays live as the gap-guard until the
+          // reclaim collapses the travel in an invisible state (see the
+          // architecture comment).
           armTravelReclaim();
           video.play().catch(() => {});
           cbComplete.current?.();
@@ -436,6 +475,9 @@ export function useMacbookScrub({
           resumeIo.disconnect();
           window.clearTimeout(reclaimTimer);
           window.removeEventListener("scroll", onReclaimScroll);
+          window.removeEventListener("touchstart", onReclaimTouchStart);
+          window.removeEventListener("touchend", onReclaimTouchEnd);
+          window.removeEventListener("touchcancel", onReclaimTouchEnd);
         };
       };
 

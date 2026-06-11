@@ -130,10 +130,98 @@ strict comparisons deadlock the reclaim.
 
 - One-shot ownership, proxy-gated writers, no scroll-driven pause —
   `useMacbookScrub.ts` architecture comment + recipe B.3 / Bug 12.
-- Pin retirement at handoff, pixel-identical park — recipe B.4 / Bug 13.
-- Deferred reclaim, never at the seam, 2px epsilon — recipe B.5 / Bug 14.
+- ~~Pin retirement at handoff, pixel-identical park~~ **superseded by round
+  5**: sticky stays live as the gap-guard — recipe B.4 / Bugs 13–15.
+- Deferred reclaim, never at the seam, 2px epsilon — recipe B.5 / Bug 14 —
+  **narrowed by round 5** to quiet-timer-only, invisible states only.
 - Dense keyframes scripted, ffprobe check — `scripts/encode-video.sh` +
   recipe B.1 / Bug 9.
 - Real-device checklist — recipe "Real-device test checklist".
 - Cross-project distillation —
   `~/CodeProjects/claude-notes/build-lessons/scroll-scrub-handoff-ownership.md`.
+
+## Addendum (2026-06-11, round 4): reclaim must fire on turn-back, not on quiet
+
+Round 3's reclaim shipped and Dan's prod test found its gap — literally: a
+user scrolling up *immediately* after the handoff outruns the 400ms quiet
+timer, and once the gap is on screen the "visible → wait" state waits
+forever. He rode the full `scrubPx` band up and watched it snap closed at the
+far end. The state machine prevented a visible *collapse* but not a visible
+*gap* — backwards priorities.
+
+**Fix (branch `fix/section-05-reclaim-on-reveal`):** collapse the instant the
+user turns back toward the gap, before it can be revealed:
+
+- `touchstart` with the gap at/above the viewport top (`rect.top <= 2`) →
+  collapse. Finger-down kills iOS momentum, so the same-task
+  `scrollTo(y - scrubPx)` cannot fight it. Induction: on touch, revealing
+  the gap requires an upward gesture, which always begins with a fresh
+  finger-down → on touch devices the gap is now *unrevealable*.
+- First upward scroll event with the gap at/above the viewport top and
+  within one viewport (`rect.top + scrubPx > -innerHeight`) → collapse.
+  Desktop wheel/trackpad deltas are relative and survive the re-anchor; the
+  near-guard keeps far-away inertia and the iOS bottom rubber-band (scrollY
+  briefly decreases) from triggering it.
+- Quiet-timer ("above") and fully-below collapse remain as fallbacks; the
+  only remaining "wait" state is real content visible above the seam
+  (deep-link / Page Up edge), where any anchor would visibly move it.
+
+Verified by probes at 1440 and 390: turn-back collapse fires on the first
+upward step / touchstart with ≤0.5px block drift, video playing throughout;
+below-path jump preserves scroll position exactly; quiet path still works.
+Recipe B.5 + Bug 14 rewritten so following the recipe can't reproduce this.
+
+## Addendum (2026-06-11, round 5): the turn-back collapse snaps on real iOS — sticky-repay
+
+Dan's real-iPhone test of round 4 failed: "the snap that moves us down to the
+next section" — the original round-1 jump, back again. The eager collapse
+(`touchstart` / first up-scroll + same-task `scrollTo(y - scrubPx)`) probed
+0px-drift clean in desktop Chromium and under synthetic touch, and visibly
+snapped on the device.
+
+**Mechanism:** iOS's compositor owns scrolling during gestures and momentum
+and stomps programmatic scrolls issued near them. The round-4 induction —
+"finger-down kills momentum, so the same-task re-anchor can't be fought" — is
+false on real hardware: the `touchstart` listener runs before the compositor
+has killed momentum, and deceleration frames overwrite the `scrollTo`. The
+height collapse lands; its compensation doesn't; the viewport jumps by
+`scrubPx`. No desktop browser or synthetic event reproduces this.
+
+**The trichotomy that drove the redesign:** the consumed travel can only ever
+come back on the way up as a **gap** (pin retired, travel left in layout —
+Dan rejected it in round 4), a **snap** (travel removed with scrollTo
+compensation — Dan rejected it in rounds 1 and 5; there is no event-timing
+fix because the problem is event timing), or a **hold** (sticky re-pins and
+repays the travel 1:1). Transforms, bottom-pinning, filler content, gradual
+reclaim, spacer-before-block, micro-chunked scrollTo, two-phase commit — all
+analyzed, all reduce to one of the three. So design the hold.
+
+**Fix (branch `fix/section-05-sticky-repay`):**
+
+- **Do NOT retire the pin at handoff.** The block just rests at sticky's
+  end-of-travel clamp — pixel-identical to the old park — and sticky stays
+  live as the gap-guard: on ascent it clamps the block to the viewport top
+  compositor-natively (no JS, no event timing), so the vacated region is
+  geometrically unseeable while the travel repays 1:1.
+- **Reclaim only on the 400ms quiet timer, only in provably-invisible
+  states:** "above" (gap fully above the viewport, user at true rest →
+  collapse + same-task `scrollTo(y - scrubPx)`; this exact at-rest path
+  shipped in round 3 with zero snap reports; guarded by a `touchActive`
+  flag) and "clear" (block at wrapper top AND spacer + following content
+  below the viewport bottom → no scrollTo needed; this is where the pin
+  retires with zero travel left). Everything else is "wait".
+- **Accepted cost:** a user who never pauses ≥400ms post-handoff feels the
+  demo hold at the viewport top during ascent while the travel repays —
+  with the video playing through it. (Round 3's "page stops scrolling"
+  report was this hold *plus* a frozen reverse-scrubbing video; the pure
+  hold is the survivable corner.) Anyone who pauses even briefly never
+  feels it.
+
+Verified: tsc clean, 31/31 vitest, production build green, zero console
+errors; five Playwright probe scenarios green at 1440×900 and 390×844 —
+killer immediate-no-rest ascent (0 gap frames, 0 scrollY jumps, travel held
+through ascent, "clear" collapse at rest with scrollY preserved exactly),
+rest-at-handoff "above" collapse (0.3px block drift, video playing),
+direction changes with partial repay, second descent (0 re-pin frames), and
+the touch-guard (collapse deferred while synthetic finger down, fired after
+release). Awaiting Dan's real-iPhone verdict on the preview before merge.
