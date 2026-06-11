@@ -1,7 +1,7 @@
 # Scroll-scrubbed video recipe
 
 How to drive a `<video>` from scroll position with GSAP ScrollTrigger so it
-feels buttery, without falling into the fourteen bugs we hit getting there.
+feels buttery, without falling into the fifteen bugs we hit getting there.
 
 This recipe is written to be portable to any project. The two implementations
 that grew this guide are:
@@ -29,7 +29,7 @@ against each other.
 | You want… | Pattern | Encoding | `scrub` | Scrub distance | Pinning |
 |---|---|---|---|---|---|
 | Long, glide-y intro that fades into other reveals | **Hero** | Default H.264 (sparse keyframes) | `0.5` | `+=3000`-ish | GSAP `pin: true` (`pinType: "fixed"`) |
-| Precise frame-by-frame scrub then autoplay | **Demo** | Dense-keyframe H.264 (`-g 6`) | `0.3` | `+=500–800` | `position: sticky` + travel spacer — **no GSAP pin, no teardown** (Bug 7), retired one-shot at handoff (Bugs 12–14) |
+| Precise frame-by-frame scrub then autoplay | **Demo** | Dense-keyframe H.264 (`-g 6`) | `0.3` | `+=500–800` | `position: sticky` + travel spacer — **no GSAP pin, no teardown** (Bug 7), one-shot ownership at handoff, sticky stays live as the gap-guard, travel reclaimed only in invisible states (Bugs 12–15) |
 
 If you're not sure, start with **Hero**. It's more forgiving and the heavy
 smoothing hides a lot of imprecision. Reach for **Demo** only if the scroll-
@@ -399,15 +399,18 @@ One flag, flipped once, never reset:
   `if (played && video.paused && !video.ended) video.play()`. `ended` stays
   ended — the replay overlay owns that state.
 
-### B.4 — Retire the pin at handoff
+### B.4 — Keep the pin alive — sticky is the gap-guard
 
-`position: sticky` is stateless — it happily re-engages every time the
-scroll range is re-crossed. Left alone, scrolling back up post-playback
-re-pins the block through the whole travel: the page visibly "stops
-scrolling" for `scrubPx` before releasing (Bug 13).
+`position: sticky` is stateless — it re-engages every time the scroll range
+is re-crossed. Our first instinct was to retire it at the handoff (swap to
+`position: relative; top: ${scrubPx}px`, pixel-identical) so the page never
+"stops scrolling" on the way back up (Bug 13). **That was wrong** — it took
+two more real-device rounds (Bugs 14, 15) to learn why: retiring the pin
+leaves the consumed travel as `scrubPx` of dead space above the block, and
+on iOS there is *no JS moment near a gesture* where that space can be
+removed safely. Every eager removal is the Bug 7 snap wearing a new hat.
 
-At handoff, convert the block to static layout **at the exact pixel position
-sticky is already holding** (end of travel):
+So the handoff does NOT touch the pin:
 
 ```ts
 const startPlayback = () => {
@@ -418,95 +421,87 @@ const startPlayback = () => {
     return;
   }
   played = true;
-  block.style.position = "relative";
-  block.style.top = `${scrubPx}px`;   // pixel-identical to sticky's end-of-travel pose
-  armTravelReclaim();                  // B.5
+  armTravelReclaim();          // B.5 — lazy, invisible-states-only
   video.play().catch(() => {});
 };
 ```
 
-Document height is unchanged, the block doesn't move a pixel, and sticky can
-never re-pin. Post-handoff the section scrolls as if nothing was ever pinned.
+The block simply rests at sticky's end-of-travel clamp (same pixels as the
+park). While sticky is alive, the vacated space is **geometrically
+unseeable**: scrolling back up re-pins the block at the viewport top —
+compositor-native, no JS, no event timing — and repays the travel 1:1, so
+the previous section is always directly above the pinned block. Never a gap,
+at any scroll speed, under any momentum.
 
-### B.5 — Reclaim the travel — before the gap can ever be SEEN
+The accepted cost: a user who turns straight back up *without ever pausing*
+feels the demo hold at the viewport top while the travel repays — the same
+hold as the way in, with the video playing (the scrub itself stays gated;
+B.3). The consumed travel can only ever come back as a **gap**, a **snap**,
+or a **hold** — real devices rejected the first two (Bugs 14, 15), and the
+at-rest reclaim (B.5) keeps the hold away from everyone who pauses for even
+400ms. Bug 13's "page stops scrolling" report was this hold *plus* a frozen,
+reverse-scrubbing video (pre-ownership); with playback running through it
+and most users never hitting it, it's the survivable corner of the triangle.
 
-Retiring the pin (B.4) leaves the consumed travel as `scrubPx` of dead space
-*above* the block — a huge blank band between sections when the user scrolls
-back up (Bug 14). It has to be reclaimed, and Bug 7's law still holds — you
-cannot change document height under a live scroll at the seam.
+### B.5 — Reclaim the travel — only in provably-invisible states
 
-Our first version waited for a provably-invisible moment (gap offscreen AND
-scroll quiet for 400ms, or section fully below the viewport). That logic is
-correct but **incomplete**: a user who turns back *right after* the handoff
-outruns the quiet timer, and once the gap is on screen "wait for invisible"
-waits forever — they ride the whole gap up and watch it snap closed at the
-far end (Bug 14's second report). The reclaim must fire **the instant the
-user turns back toward the gap, before it can be revealed**:
+The travel still has to collapse eventually (or sticky re-pins on every
+later down-pass). Bug 7's law holds — you cannot change document height
+under a live scroll at the seam — and Bug 15 sharpened it: **you cannot
+issue a compensating `scrollTo` anywhere near a gesture either**, because
+the iOS compositor stomps programmatic scrolls around live touches and
+momentum. Desktop probes pass; the phone snaps. So the reclaim runs on a
+400ms scroll-quiet timer and fires only in two states where nothing the
+user can see moves:
 
 ```ts
-const reclaimTravel = (state: "above" | "below") => {
+const reclaimState = (): "above" | "clear" | "wait" => {
+  const rect = travel.getBoundingClientRect();
+  if (rect.top + scrubPx <= 2) return "above";
+  if (rect.top >= -2 && rect.bottom - scrubPx >= window.innerHeight - 2)
+    return "clear";
+  return "wait";
+};
+
+const reclaimTravel = (state: "above" | "clear") => {
   const y = window.scrollY;
-  block.style.position = "";
-  block.style.top = "";
   travel.style.setProperty("--scrub-travel", "0px");      // spacer → 0
   if (state === "above") window.scrollTo(0, y - scrubPx); // same task — net zero pixels move
   ScrollTrigger.refresh();                                 // re-anchor triggers below
 };
-
-// 1) Finger-down: iOS momentum is dead, the scroll position is ours for one
-//    task. Gap at/above the viewport top → collapse NOW. Revealing the gap
-//    on touch always requires an upward gesture, which always begins with a
-//    fresh touchstart — so on touch devices the gap can never be revealed.
-const onReclaimTouch = () => {
-  if (reclaimed) return;
-  if (travel.getBoundingClientRect().top <= 2) reclaimTravel("above");
-};
-
-// 2) First upward scroll event near the gap (desktop wheel/trackpad —
-//    relative deltas survive the same-task re-anchor). The near-guard (gap
-//    within one viewport) keeps far-away inertia and the iOS bottom
-//    rubber-band (scrollY briefly decreases) from triggering it. rect.top
-//    <= 2 keeps it off the deep-link/Page-Up case where real content is
-//    visible above the seam — anchoring the block then would visibly slam
-//    that content down.
-const onReclaimScroll = () => {
-  if (reclaimed) return;
-  const y = window.scrollY;
-  const turnedBack = y < lastY;
-  lastY = y;
-  const rect = travel.getBoundingClientRect();
-  if (rect.top >= window.innerHeight - 2) return reclaimTravel("below");
-  if (turnedBack && rect.top <= 2 && rect.top + scrubPx > -window.innerHeight)
-    return reclaimTravel("above");
-  // otherwise re-schedule the 400ms quiet fallback
-};
 ```
+
+- **"above"** — the gap sits fully at/above the viewport top: the user
+  rested at or below the handoff point (the normal watching-the-demo rest).
+  Collapse + same-task re-anchor: the block and everything below it hold
+  pixel-fixed. A `scrollTo` at *true rest* sticks on iOS — this exact path
+  shipped for a full round with no snap reports; only gesture-adjacent
+  scrollTos got stomped. Guard it anyway: track `touchstart`/`touchend` and
+  have the quiet timer re-arm while a finger is down.
+- **"clear"** — the block sits at the wrapper top (sticky repaid the travel
+  on the way up, or the page restored/jumped above the section) AND the
+  spacer plus everything after the wrapper is below the viewport bottom.
+  No re-anchor needed — nothing visible moves, nothing for iOS to stomp.
+  This is where the pin retires: with zero travel left, sticky goes inert.
+- **"wait"** — anywhere else (mid-repay hold, seam on screen after a deep
+  link). Waiting costs nothing visible, because sticky guarantees the gap
+  itself can never be revealed in the meantime.
 
 (2px tolerance on every geometry comparison: scrollY lands on whole device
 pixels while measured geometry is fractional — without it a user resting at
 the handoff point sits a sub-pixel short of "above" forever.)
 
-The anchors:
-
-- **"above"-anchored** (gap at/above the viewport top — `rect.top <= 2`):
-  collapse, then re-anchor `scrollY` by the same `scrubPx` **in the same
-  task** — no paint between collapse and correction. The block and everything
-  below it hold pixel-fixed; whatever sliver of gap was showing swaps
-  black → previous section's bottom (black-on-black on a dark page). The
-  absolute `scrollTo` is only safe with no opposing momentum live — which is
-  exactly what touchstart and relative wheel deltas guarantee.
-- **"below"** (user jumped back above the section): nothing visible moves
-  and `scrollY` stays valid — safe to run immediately, even mid-scroll.
-- **Fallbacks:** the 400ms scroll-quiet timer (inputs that produce neither a
-  touchstart nor an upward event before parking), and "wait" only for the
-  rare deep-link/Page-Up state where real content is visible above the seam.
+What is deliberately ABSENT: any eager path. No collapse on `touchstart`,
+no collapse on the first upward scroll event, no `scrollTo` while anything
+is in motion. All of those were built, probe-verified on desktop, and
+falsified by a real iPhone (Bug 15).
 
 After the reclaim the section is plain static layout: no pin, no spacer, no
 gap, video playing through all of it.
 
 ---
 
-## The fourteen bugs
+## The fifteen bugs
 
 These are written down in the order we hit them. The bug names use the
 implementation we found them in (the demo pattern), but Bugs 2, 5, 6 apply to
@@ -518,13 +513,16 @@ the hero pattern as well.
 > (B.2). Bugs 3, 4, 6 are kept for the record — in the sticky architecture
 > they can't occur, because there is no pin to kill, disable, or revert.
 >
-> **The same goes for 12 → 13 → 14.** That chain is the post-handoff story:
-> the symmetric zone was wrong UX (12), retiring the pin fixed it but exposed
-> sticky re-pinning (13), retiring sticky fixed *that* but left a gap (14).
-> Each fix was correct and necessary; the lesson is that "scrub hands off to
-> playback" isn't one feature, it's three — ownership (B.3), pin retirement
-> (B.4), and travel reclaim (B.5) — and shipping any subset feels broken on a
-> real phone.
+> **The same goes for 12 → 13 → 14 → 15.** That chain is the post-handoff
+> story: the symmetric zone was wrong UX (12), one-shot ownership fixed it
+> but the re-pin with a frozen video read as "scroll stops" (13), retiring
+> the pin fixed *that* but left a gap (14), and every eager attempt to
+> collapse the gap snapped on a real iPhone (15). The chain ends where
+> B.4/B.5 land: sticky stays alive as the gap-guard and the travel is
+> reclaimed only in provably-invisible states. The lesson is that "scrub
+> hands off to playback" isn't one feature, it's three — ownership (B.3),
+> the gap-guard pin (B.4), and travel reclaim (B.5) — and shipping any
+> subset feels broken on a real phone.
 >
 > **And 9, 10, 11 are the iOS triptych.** Two of them (10, 11) produce the
 > *identical* user-visible symptom — frozen scrub, black flash, plays from 0
@@ -711,11 +709,11 @@ at viewport top" — is simply wrong and drags them back). The correct
 `scrollBy` value depends on where the user is *and* whether momentum is live —
 information you can't reliably have. **Any architecture that reclaims the
 travel height *at the seam* needs that correction; therefore no such
-architecture can work.** (Reclaiming it *later*, anchored so nothing visible
-can move — at finger-down, on the first turn-back, or once everything is
-offscreen — is a different story — see Bug 14 / B.5. The unfixable part is
-specifically "document height changes under opposing live momentum with real
-content moving on screen.")
+architecture can work.** (Reclaiming it *later* is a different story — but
+only at true rest or with everything below the viewport. The eager variants
+— finger-down, first turn-back — probed clean on desktop and snapped on a
+real iPhone; see Bugs 14–15 / B.5. The unfixable part is "document height
+changes anywhere near a live gesture or momentum.")
 
 **Fix:** Make the travel height *permanent layout* so nothing is reclaimed at
 the seam: `position: sticky` + a real spacer child (see B.2). Constant
@@ -863,7 +861,7 @@ open with painted frames matching `currentTime`.
 
 ### Bug 12 — The symmetric zone re-takes the playhead after real playback
 
-*(demo pattern only — first of the post-handoff chain 12 → 13 → 14)*
+*(demo pattern only — first of the post-handoff chain 12 → 13 → 14 → 15)*
 
 **Symptom (real iPhone):** After the demo has handed off and is playing,
 scrolling back up (a) re-scrubs the playing video *in reverse* — the lid
@@ -904,7 +902,7 @@ moment.)
 the scroll range is re-crossed, in both directions, forever. Gating the
 *scrub* on `played` does nothing about the *pin*, which is pure CSS.
 
-**Fix:** Retire the pin at handoff (B.4): swap the block to
+**Fix (at the time):** Retire the pin at handoff: swap the block to
 `position: relative; top: ${scrubPx}px` — the exact pixel pose sticky holds
 at end-of-travel, so the swap is invisible and document height is unchanged.
 Sticky can never re-engage. Also remove **every** scroll-driven pause
@@ -912,9 +910,19 @@ Sticky can never re-engage. Also remove **every** scroll-driven pause
 allowed intervention is *resuming* an iOS offscreen suspension (B.3's
 IntersectionObserver).
 
+**Revised by Bugs 14–15:** retiring the pin at the handoff is what *created*
+the gap (Bug 14), and every eager attempt to collapse that gap snapped on a
+real iPhone (Bug 15). The architecture that holds (B.4) keeps sticky alive
+as the gap-guard and retires it inside the reclaim, at a moment with zero
+travel left to repay. Re-reading this bug's report with that hindsight: the
+part that read as broken was the **frozen, reverse-scrubbing video** during
+the re-pin — the ungated scrub plus the pause — not the hold itself. A pure
+hold with the video playing through it is the survivable corner of the
+gap/snap/hold triangle. Removing the scroll-driven pauses stands unchanged.
+
 ### Bug 14 — The retired pin leaves a `scrubPx` gap above the demo
 
-*(demo pattern only — the final bug of the chain)*
+*(demo pattern only)*
 
 **Symptom:** With the pin retired (Bug 13 fixed), scrolling back up reveals a
 huge blank band — `scrubPx` of dead space — between the previous section and
@@ -925,20 +933,20 @@ transform; here it's the consumed travel itself, now serving no purpose.)
 after retirement it's just empty document. It must be reclaimed — but Bug 7
 proved reclaiming at the seam is unfixable.
 
-**Fix (two iterations):** Deferred reclaim, anchored so nothing visible moves
-(B.5). The first iteration collapsed only at a provably-invisible moment —
-gap offscreen AND 400ms scroll-quiet, or section fully below the viewport.
-That shipped a second report: a user turning back *immediately* after the
-handoff outruns the quiet timer, and once the gap is on screen "wait for
-invisible" waits forever — they ride the whole gap up and watch it snap at
-the far end. The complete fix collapses **the instant the user turns back
-toward the gap**, before it can be revealed: on `touchstart` with the gap
-at/above the viewport top (finger-down kills iOS momentum, so the same-task
-`scrollTo(y - scrubPx)` can't fight it — and on touch, revealing the gap
-always starts with a fresh finger-down), and on the first upward scroll
-event near the gap (wheel/trackpad deltas are relative and survive the
-re-anchor). Quiet-timer and below-the-viewport collapse remain as fallbacks.
-Then `ScrollTrigger.refresh()`.
+**Fix (two iterations — the second falsified on device):** Deferred reclaim,
+anchored so nothing visible moves (B.5). The first iteration collapsed only
+at a provably-invisible moment — gap offscreen AND 400ms scroll-quiet, or
+section fully below the viewport. That shipped a second report: a user
+turning back *immediately* after the handoff outruns the quiet timer, and
+once the gap is on screen "wait for invisible" waits forever — they ride the
+whole gap up and watch it snap at the far end. The second iteration collapsed
+**the instant the user turns back toward the gap** — on `touchstart` with the
+gap at/above the viewport top, and on the first upward scroll event near it —
+with a same-task `scrollTo(y - scrubPx)` re-anchor. It probed 0px-drift clean
+on desktop and under synthetic touch, and **snapped on a real iPhone**
+(Bug 15). The fix that holds stops collapsing eagerly altogether: sticky
+stays alive as the gap-guard (B.4) so the gap is geometrically unseeable, and
+the reclaim runs only in the two provably-invisible states (B.5).
 
 **Three hard-won details:**
 
@@ -947,16 +955,51 @@ Then `ScrollTrigger.refresh()`.
   exactly at the handoff point measured `rect.top + scrubPx = 0.07px` —
   *never* ≤ 0, so a strict comparison deadlocked the reclaim forever on
   mobile. Any "wait until fully offscreen" geometry check needs a tolerance.
-- **"Deferred" must not mean "visible".** A reclaim that politely waits
-  while the user stares at the gap has the priorities backwards. The gap
-  must be unrevealable, not merely collapsed-when-convenient — and the
-  moment the user turns back toward it is both the last chance to collapse
-  unseen and a moment when no opposing momentum can be live.
-- **The quiet-wait is still load-bearing as a fallback.** The same collapse
-  that is invisible at rest is the original Bug 7 jump if it runs under
-  opposing live momentum. 400ms with no scroll events worked; `scrollend`
-  alone does not (it fires early on discrete scrolls — same finding as
-  Bug 7).
+- **"Deferred" must not mean "visible" — but the cure is geometry, not
+  events.** A reclaim that politely waits while the user stares at the gap
+  has the priorities backwards; the gap must be unrevealable. The wrong way
+  to get there is event-triggered collapse: every eager variant needs a
+  programmatic scroll near a live gesture, and iOS stomps those (Bug 15).
+  The right way is the gap-guard pin — sticky clamps the block to the
+  viewport top compositor-natively, with no JS and no event timing (B.4).
+- **The quiet-wait is load-bearing — promoted from fallback to the only
+  path.** The same collapse that is invisible at rest is the original Bug 7
+  jump if it runs under opposing live momentum. 400ms with no scroll events
+  worked (now touch-guarded as well); `scrollend` alone does not (it fires
+  early on discrete scrolls — same finding as Bug 7).
+
+### Bug 15 — The eager turn-back collapse snaps on real iOS
+
+*(demo pattern only — the bug that ended the post-handoff chain)*
+
+**Symptom (real iPhone):** With Bug 14's second iteration live (collapse on
+`touchstart` / first up-scroll, same-task `scrollTo` re-anchor), scrolling up
+after the handoff produced "the snap that moves us down to the next section"
+— the original Bug 7 jump, back again, after every desktop probe and
+synthetic-touch run had shown 0px drift.
+
+**Cause:** iOS's compositor owns scrolling during gestures and momentum, and
+it **stomps programmatic scrolls issued near them**. The induction that
+justified the touchstart path — "finger-down kills momentum, so the same-task
+re-anchor can't be fought" — is false on real hardware: the `touchstart`
+listener runs before the compositor has killed momentum, and deceleration
+frames overwrite the `scrollTo`. The height collapse lands; its compensation
+doesn't; the viewport jumps by `scrubPx`. No desktop browser and no synthetic
+event reproduces this — only a physical device.
+
+**Fix:** Stop collapsing eagerly, full stop — there is no event-timing
+solution, because the problem *is* event timing. The consumed travel can only
+ever come back as a gap, a snap, or a hold (B.4's triangle), so make the hold
+the designed behaviour and make it compositor-native: sticky stays live after
+the handoff as the gap-guard, repaying the travel 1:1 on the way up with the
+video playing through it, and the reclaim runs only on the quiet timer in the
+two states where it is provably invisible — at rest with the gap fully above
+the viewport (the one surviving `scrollTo`, guarded by a `touchActive` flag;
+this exact at-rest path shipped in round 3 with zero snap reports), or with
+the spacer and everything after it fully below the viewport (no `scrollTo`
+needed at all; this is where the pin retires with zero travel left). The only
+primitive iOS executes reliably under a live gesture is CSS sticky itself —
+so sticky does the work.
 
 ---
 
@@ -993,11 +1036,23 @@ Then `ScrollTrigger.refresh()`.
   video.
 - **Pausing the video from any scroll callback post-playback** — Bugs 12/13.
   Strands the demo frozen and visible with no path to `ended`.
-- **Leaving `position: sticky` live after the handoff** — Bug 13. Sticky is
-  stateless and re-pins on every re-cross; retire it explicitly.
+- **Leaving `position: sticky` live after the handoff *with the scrub still
+  acting on re-cross*** — Bug 13. The frozen, reverse-scrubbing video made
+  the re-pin read as "the page stopped scrolling." (Sticky-alive itself was
+  later vindicated as the gap-guard — B.4 — once ownership was one-shot and
+  every scroll-driven pause was gone. The broken part was the writer, not
+  the pin.)
+- **Retiring the pin at the handoff** (`position: relative; top: scrubPx`,
+  pixel-identical swap) — created Bug 14's gap, and the gap has no safe
+  eager collapse (Bug 15). Retirement now happens inside the reclaim, at a
+  moment with zero travel left.
 - **Strict (0-tolerance) geometry comparisons for "fully offscreen"** —
   Bug 14. Device-pixel `scrollY` vs fractional rects deadlocked the reclaim
   at 0.07px, forever.
+- **Collapsing the travel eagerly on turn-back** (`touchstart` + same-task
+  `scrollTo` re-anchor; first upward scroll event near the gap) — Bug 15.
+  Probed 0px-drift clean on desktop and under synthetic touch; snapped on a
+  real iPhone. The compositor stomps gesture-adjacent programmatic scrolls.
 
 ## Don't
 
@@ -1014,12 +1069,13 @@ Then `ScrollTrigger.refresh()`.
 - Don't let any scroll callback pause the video once real playback has
   started. The only allowed post-handoff intervention is resuming an iOS
   offscreen suspension.
-- Don't change document height under opposing live momentum or with real
-  content moving on screen — not at the handoff, not "when scroll settles"
-  (settle detection lies; Bug 7). Defer to an invisibly-anchored moment —
-  touchstart, first turn-back, fully-below, or scroll-quiet (B.5) — or
-  don't do it. And don't let "deferred" mean the user can ever *see* the
-  un-reclaimed space while you wait (Bug 14, second report).
+- Don't change document height anywhere near a live gesture or momentum —
+  not at the handoff, not "when scroll settles" (settle detection lies;
+  Bug 7), and not on `touchstart` or the first turn-back either (iOS stomps
+  gesture-adjacent programmatic scrolls; Bug 15). Collapse only at true rest
+  (quiet timer + touch-guard) or with everything below the viewport (B.5).
+  And don't let the dead space be *seeable* while you wait — that's the
+  gap-guard pin's job: geometry, not events (B.4).
 - Don't trust warm-cache tests of media buffering. Bug 11 passed every test
   for weeks on the HTTP disk cache. Cold-cache + real device or it isn't
   verified.
@@ -1029,7 +1085,7 @@ Then `ScrollTrigger.refresh()`.
 
 ## Real-device test checklist (Pattern B)
 
-Desktop probes pass and the phone still breaks — Bugs 10–14 were ALL found on
+Desktop probes pass and the phone still breaks — Bugs 10–15 were ALL found on
 a real iPhone after clean desktop runs. Before calling a scrub-then-play
 handoff done, run this on a physical device, **cold cache**:
 
@@ -1038,9 +1094,12 @@ handoff done, run this on a physical device, **cold cache**:
    directions, no black, no poster flash.
 3. Scrub through → playback starts at the scrub-end frame, in real time.
 4. While it plays, scroll **up** past it — *immediately*, without pausing
-   first → scroll moves 1:1 (no dead zone), video keeps playing, caption
-   stays off, **no blank band** between the demo and the section above at
-   any point on the way up (not even one that closes later).
+   first → the demo may hold at the viewport top while the travel repays
+   (video playing through the hold, caption stays off), but **no snap** (no
+   sudden jump toward the next section) and **no blank band** between the
+   demo and the section above at any point on the way up. Then pause even
+   briefly mid-ascent and continue → the hold is gone (travel reclaimed at
+   rest).
 5. Scroll back down → still playing (or `ended` + replay overlay), never
    frozen mid-frame, scrub never re-takes the playhead.
 6. Let it end → replay overlay; replay → plays from 0; repeat step 4.
@@ -1061,7 +1120,7 @@ Encoding (Pattern B)    — dense keyframes (-g 6), scripted, ffprobe-verified (
 Media below a trigger   — reserved aspect-ratio boxes, always (Bug 10)
 onLeave (Pattern B)     — startPlayback() and NOTHING else
 Ownership (Pattern B)   — ONE-SHOT: played flips once; all scroll writers proxy-gated (B.3)
-At handoff (Pattern B)  — retire sticky: relative + top:scrubPx, pixel-identical (B.4)
-After handoff (B)       — reclaim travel on turn-back (touchstart / first up-scroll),
-                          quiet + below as fallbacks, 2px epsilon (B.5)
+At handoff (Pattern B)  — do NOT retire sticky; it stays live as the gap-guard (B.4)
+After handoff (B)       — quiet-timer reclaim ONLY: at-rest-above (scrollTo) or
+                          clear-below (no scrollTo), touch-guarded, 2px epsilon (B.5)
 ```
