@@ -137,3 +137,34 @@ strict comparisons deadlock the reclaim.
 - Real-device checklist — recipe "Real-device test checklist".
 - Cross-project distillation —
   `~/CodeProjects/claude-notes/build-lessons/scroll-scrub-handoff-ownership.md`.
+
+## Addendum (2026-06-11, round 4): reclaim must fire on turn-back, not on quiet
+
+Round 3's reclaim shipped and Dan's prod test found its gap — literally: a
+user scrolling up *immediately* after the handoff outruns the 400ms quiet
+timer, and once the gap is on screen the "visible → wait" state waits
+forever. He rode the full `scrubPx` band up and watched it snap closed at the
+far end. The state machine prevented a visible *collapse* but not a visible
+*gap* — backwards priorities.
+
+**Fix (branch `fix/section-05-reclaim-on-reveal`):** collapse the instant the
+user turns back toward the gap, before it can be revealed:
+
+- `touchstart` with the gap at/above the viewport top (`rect.top <= 2`) →
+  collapse. Finger-down kills iOS momentum, so the same-task
+  `scrollTo(y - scrubPx)` cannot fight it. Induction: on touch, revealing
+  the gap requires an upward gesture, which always begins with a fresh
+  finger-down → on touch devices the gap is now *unrevealable*.
+- First upward scroll event with the gap at/above the viewport top and
+  within one viewport (`rect.top + scrubPx > -innerHeight`) → collapse.
+  Desktop wheel/trackpad deltas are relative and survive the re-anchor; the
+  near-guard keeps far-away inertia and the iOS bottom rubber-band (scrollY
+  briefly decreases) from triggering it.
+- Quiet-timer ("above") and fully-below collapse remain as fallbacks; the
+  only remaining "wait" state is real content visible above the seam
+  (deep-link / Page Up edge), where any anchor would visibly move it.
+
+Verified by probes at 1440 and 390: turn-back collapse fires on the first
+upward step / touchstart with ≤0.5px block drift, video playing throughout;
+below-path jump preserves scroll position exactly; quiet path still works.
+Recipe B.5 + Bug 14 rewritten so following the recipe can't reproduce this.

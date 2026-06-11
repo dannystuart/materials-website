@@ -55,12 +55,18 @@ type Args = {
 // dead space above the block (the distance the pin travelled), which read as
 // a huge black gap between sections when scrolling back up. It can't be
 // removed at the handoff itself — that's the document-height-change-under-a-
-// live-scroll jump bug all over again — so it collapses at the first safe
-// moment after playback starts: scrolling has gone quiet (or the whole
-// section is below the viewport, where layout changes are invisible), the
-// seam is fully offscreen, and the scroll position is re-anchored in the
-// same task so not a pixel moves on screen. After the reclaim the section is
-// plain static layout with no gap.
+// live-scroll jump bug all over again — and it can't simply wait for scroll
+// to go quiet, because a user who turns back right after the handoff outruns
+// the quiet timer and rides the gap the whole way up (the "large gap until
+// the previous section snaps" report). So it collapses the instant the user
+// turns back TOWARD the gap, before it can be revealed: on touchstart
+// (finger-down kills iOS momentum, so the same-task scroll re-anchor is
+// safe) and on the first upward scroll event near the gap (wheel/trackpad
+// deltas are relative and survive the re-anchor). Everything at or below the
+// seam holds pixel-fixed; the region above it swaps gap-black for the true
+// bottom of the previous section. Scroll-quiet and section-fully-below
+// remain as fallbacks. After the reclaim the section is plain static layout
+// with no gap.
 export function useMacbookScrub({
   travelRef,
   blockRef,
@@ -150,20 +156,32 @@ export function useMacbookScrub({
 
         // Travel reclaim (see the architecture comment up top). Collapsing
         // the spacer moves the block and everything below it up by scrubPx,
-        // so it only runs when that shift is invisible:
-        // - "above": the gap sits fully above the viewport (the user is at
-        //   or below the demo). Everything they can see shifts up scrubPx,
-        //   so the scroll position is re-anchored by the same amount in the
-        //   same task — net zero pixels moved. Scroll must be QUIET first:
-        //   an absolute scrollTo under live momentum is the original
-        //   handoff-jump bug.
-        // - "below": the whole section is below the viewport (the user
-        //   scrolled back above it). Nothing they can see moves and the
-        //   scroll position stays valid, so this is safe even mid-scroll.
-        // If the seam is on screen (parked mid-zone), wait — the next
-        // scroll re-schedules.
+        // so it only runs anchored to something the user can't see move:
+        // - "above"-anchored: the gap sits at or above the viewport top
+        //   (rect.top <= 0 — the user is at or below the demo, possibly
+        //   with a sliver of gap revealed). Collapse, then re-anchor the
+        //   scroll position by the same scrubPx in the same task: the block
+        //   and everything below it hold pixel-fixed, and the region above
+        //   the seam swaps gap-black for the previous section's bottom —
+        //   black-on-black on this page. The absolute scrollTo is only safe
+        //   when no opposing momentum is live: at touchstart (finger-down
+        //   kills iOS momentum — and revealing the gap on touch always
+        //   begins with a fresh finger-down, which collapses first), or
+        //   under wheel/trackpad input whose deltas are relative. The
+        //   near-guard (gap within one viewport) keeps far-away momentum
+        //   and the iOS bottom rubber-band (scrollY briefly decreases) from
+        //   triggering the scroll-event path.
+        // - "below": the whole section is below the viewport (the user is
+        //   back above it). Nothing they can see moves and the scroll
+        //   position stays valid, so this is safe even mid-scroll.
+        // The 400ms scroll-quiet timer stays as the fallback for inputs
+        // that produce neither a touchstart nor an upward scroll event
+        // before parking. If the seam is on screen with real content above
+        // it (deep-link / Page Up jumps), wait — the next scroll
+        // re-schedules.
         let reclaimed = false;
         let reclaimTimer: number | undefined;
+        let lastY = 0;
         const reclaimState = () => {
           // 2px tolerance on both boundaries: scroll positions land on
           // whole device pixels while the measured geometry is fractional,
@@ -179,6 +197,7 @@ export function useMacbookScrub({
           reclaimed = true;
           window.clearTimeout(reclaimTimer);
           window.removeEventListener("scroll", onReclaimScroll);
+          window.removeEventListener("touchstart", onReclaimTouch);
           const y = window.scrollY;
           // Back into flow at the wrapper top (the sticky class is inert
           // once the spacer is gone — zero slack to travel).
@@ -187,8 +206,7 @@ export function useMacbookScrub({
           travel.style.setProperty("--scrub-travel", "0px");
           if (state === "above") window.scrollTo(0, y - scrubPx);
           // Triggers below the demo measured the taller layout — re-anchor
-          // them to the reclaimed one. Quiet moment, so this can't fight a
-          // live scroll.
+          // them to the reclaimed one.
           ScrollTrigger.refresh();
         };
         const onReclaimQuiet = () => {
@@ -197,17 +215,44 @@ export function useMacbookScrub({
           if (state === "visible") return;
           reclaimTravel(state);
         };
+        const onReclaimTouch = () => {
+          if (reclaimed) return;
+          // Finger-down: momentum (if any) is dead and the scroll position
+          // is ours for one task. With the gap at/above the viewport top,
+          // collapse now — the drag this touch begins can never reveal it.
+          if (travel.getBoundingClientRect().top <= 2) reclaimTravel("above");
+        };
         const onReclaimScroll = () => {
           if (reclaimed) return;
-          if (reclaimState() === "below") {
+          const y = window.scrollY;
+          const turnedBack = y < lastY;
+          lastY = y;
+          const rect = travel.getBoundingClientRect();
+          if (rect.top >= window.innerHeight - 2) {
             reclaimTravel("below");
+            return;
+          }
+          // Turned back toward a gap that's at/above the viewport top and
+          // within one viewport of being revealed — collapse before this
+          // frame paints. Mostly a desktop path: on touch, the touchstart
+          // handler has already fired.
+          if (
+            turnedBack &&
+            rect.top <= 2 &&
+            rect.top + scrubPx > -window.innerHeight
+          ) {
+            reclaimTravel("above");
             return;
           }
           window.clearTimeout(reclaimTimer);
           reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
         };
         const armTravelReclaim = () => {
+          lastY = window.scrollY;
           window.addEventListener("scroll", onReclaimScroll, { passive: true });
+          window.addEventListener("touchstart", onReclaimTouch, {
+            passive: true,
+          });
           reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
         };
 
@@ -436,6 +481,7 @@ export function useMacbookScrub({
           resumeIo.disconnect();
           window.clearTimeout(reclaimTimer);
           window.removeEventListener("scroll", onReclaimScroll);
+          window.removeEventListener("touchstart", onReclaimTouch);
         };
       };
 

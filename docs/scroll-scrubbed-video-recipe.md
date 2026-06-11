@@ -428,25 +428,22 @@ const startPlayback = () => {
 Document height is unchanged, the block doesn't move a pixel, and sticky can
 never re-pin. Post-handoff the section scrolls as if nothing was ever pinned.
 
-### B.5 — Reclaim the travel — but NEVER at the seam
+### B.5 — Reclaim the travel — before the gap can ever be SEEN
 
 Retiring the pin (B.4) leaves the consumed travel as `scrubPx` of dead space
 *above* the block — a huge blank band between sections when the user scrolls
-back up (Bug 14). It has to be reclaimed. Bug 7's law still holds — you
-cannot change document height under a live scroll at the seam — so collapse
-it at the first **provably invisible** moment instead:
+back up (Bug 14). It has to be reclaimed, and Bug 7's law still holds — you
+cannot change document height under a live scroll at the seam.
+
+Our first version waited for a provably-invisible moment (gap offscreen AND
+scroll quiet for 400ms, or section fully below the viewport). That logic is
+correct but **incomplete**: a user who turns back *right after* the handoff
+outruns the quiet timer, and once the gap is on screen "wait for invisible"
+waits forever — they ride the whole gap up and watch it snap closed at the
+far end (Bug 14's second report). The reclaim must fire **the instant the
+user turns back toward the gap, before it can be revealed**:
 
 ```ts
-const reclaimState = () => {
-  // 2px tolerance on both boundaries: scrollY lands on whole device pixels
-  // while measured geometry is fractional — without it a user resting at
-  // the handoff point sits a sub-pixel short of "above" forever.
-  const rect = travel.getBoundingClientRect();
-  if (rect.top + scrubPx <= 2) return "above";          // gap fully above viewport
-  if (rect.top >= window.innerHeight - 2) return "below"; // section fully below viewport
-  return "visible";                                       // seam on screen — wait
-};
-
 const reclaimTravel = (state: "above" | "below") => {
   const y = window.scrollY;
   block.style.position = "";
@@ -455,20 +452,54 @@ const reclaimTravel = (state: "above" | "below") => {
   if (state === "above") window.scrollTo(0, y - scrubPx); // same task — net zero pixels move
   ScrollTrigger.refresh();                                 // re-anchor triggers below
 };
+
+// 1) Finger-down: iOS momentum is dead, the scroll position is ours for one
+//    task. Gap at/above the viewport top → collapse NOW. Revealing the gap
+//    on touch always requires an upward gesture, which always begins with a
+//    fresh touchstart — so on touch devices the gap can never be revealed.
+const onReclaimTouch = () => {
+  if (reclaimed) return;
+  if (travel.getBoundingClientRect().top <= 2) reclaimTravel("above");
+};
+
+// 2) First upward scroll event near the gap (desktop wheel/trackpad —
+//    relative deltas survive the same-task re-anchor). The near-guard (gap
+//    within one viewport) keeps far-away inertia and the iOS bottom
+//    rubber-band (scrollY briefly decreases) from triggering it. rect.top
+//    <= 2 keeps it off the deep-link/Page-Up case where real content is
+//    visible above the seam — anchoring the block then would visibly slam
+//    that content down.
+const onReclaimScroll = () => {
+  if (reclaimed) return;
+  const y = window.scrollY;
+  const turnedBack = y < lastY;
+  lastY = y;
+  const rect = travel.getBoundingClientRect();
+  if (rect.top >= window.innerHeight - 2) return reclaimTravel("below");
+  if (turnedBack && rect.top <= 2 && rect.top + scrubPx > -window.innerHeight)
+    return reclaimTravel("above");
+  // otherwise re-schedule the 400ms quiet fallback
+};
 ```
 
-The three states:
+(2px tolerance on every geometry comparison: scrollY lands on whole device
+pixels while measured geometry is fractional — without it a user resting at
+the handoff point sits a sub-pixel short of "above" forever.)
 
-- **"above"** (user at/below the demo, gap above the viewport): everything
-  visible would shift up by `scrubPx`, so re-anchor `scrollY` by the same
-  amount **in the same task** — no paint between collapse and correction, not
-  a pixel moves. But scroll must be **quiet** first (e.g. 400ms with no
-  scroll events): an absolute `scrollTo` under live momentum is the original
-  handoff-jump bug.
-- **"below"** (user scrolled back above the section): nothing visible moves
+The anchors:
+
+- **"above"-anchored** (gap at/above the viewport top — `rect.top <= 2`):
+  collapse, then re-anchor `scrollY` by the same `scrubPx` **in the same
+  task** — no paint between collapse and correction. The block and everything
+  below it hold pixel-fixed; whatever sliver of gap was showing swaps
+  black → previous section's bottom (black-on-black on a dark page). The
+  absolute `scrollTo` is only safe with no opposing momentum live — which is
+  exactly what touchstart and relative wheel deltas guarantee.
+- **"below"** (user jumped back above the section): nothing visible moves
   and `scrollY` stays valid — safe to run immediately, even mid-scroll.
-- **"visible"** (seam on screen — user parked mid-zone): wait; the next
-  scroll event re-schedules the quiet check.
+- **Fallbacks:** the 400ms scroll-quiet timer (inputs that produce neither a
+  touchstart nor an upward event before parking), and "wait" only for the
+  rare deep-link/Page-Up state where real content is visible above the seam.
 
 After the reclaim the section is plain static layout: no pin, no spacer, no
 gap, video playing through all of it.
@@ -680,10 +711,11 @@ at viewport top" — is simply wrong and drags them back). The correct
 `scrollBy` value depends on where the user is *and* whether momentum is live —
 information you can't reliably have. **Any architecture that reclaims the
 travel height *at the seam* needs that correction; therefore no such
-architecture can work.** (Reclaiming it *later*, once the seam is fully
-offscreen and scroll is quiet, is a different story — see Bug 14 / B.5. The
-unfixable part is specifically "document height changes under a live scroll
-with the seam on screen.")
+architecture can work.** (Reclaiming it *later*, anchored so nothing visible
+can move — at finger-down, on the first turn-back, or once everything is
+offscreen — is a different story — see Bug 14 / B.5. The unfixable part is
+specifically "document height changes under opposing live momentum with real
+content moving on screen.")
 
 **Fix:** Make the travel height *permanent layout* so nothing is reclaimed at
 the seam: `position: sticky` + a real spacer child (see B.2). Constant
@@ -893,23 +925,38 @@ transform; here it's the consumed travel itself, now serving no purpose.)
 after retirement it's just empty document. It must be reclaimed — but Bug 7
 proved reclaiming at the seam is unfixable.
 
-**Fix:** Deferred reclaim at the first provably-invisible moment (B.5):
-classify the geometry as `above` / `below` / `visible`; collapse on
-scroll-quiet when `above` (with a same-task `scrollTo(y - scrubPx)` so net
-zero pixels move), immediately when `below` (nothing visible can move),
-never when `visible`. Then `ScrollTrigger.refresh()`.
+**Fix (two iterations):** Deferred reclaim, anchored so nothing visible moves
+(B.5). The first iteration collapsed only at a provably-invisible moment —
+gap offscreen AND 400ms scroll-quiet, or section fully below the viewport.
+That shipped a second report: a user turning back *immediately* after the
+handoff outruns the quiet timer, and once the gap is on screen "wait for
+invisible" waits forever — they ride the whole gap up and watch it snap at
+the far end. The complete fix collapses **the instant the user turns back
+toward the gap**, before it can be revealed: on `touchstart` with the gap
+at/above the viewport top (finger-down kills iOS momentum, so the same-task
+`scrollTo(y - scrubPx)` can't fight it — and on touch, revealing the gap
+always starts with a fresh finger-down), and on the first upward scroll
+event near the gap (wheel/trackpad deltas are relative and survive the
+re-anchor). Quiet-timer and below-the-viewport collapse remain as fallbacks.
+Then `ScrollTrigger.refresh()`.
 
-**Two hard-won details:**
+**Three hard-won details:**
 
 - **2px epsilon on both geometry boundaries.** `scrollY` lands on whole
   device pixels; `getBoundingClientRect()` is fractional. A user resting
   exactly at the handoff point measured `rect.top + scrubPx = 0.07px` —
   *never* ≤ 0, so a strict comparison deadlocked the reclaim forever on
   mobile. Any "wait until fully offscreen" geometry check needs a tolerance.
-- **The quiet-wait is load-bearing.** The same collapse that is invisible at
-  rest is the original Bug 7 jump if it runs under live momentum. 400ms with
-  no scroll events worked; `scrollend` alone does not (it fires early on
-  discrete scrolls — same finding as Bug 7).
+- **"Deferred" must not mean "visible".** A reclaim that politely waits
+  while the user stares at the gap has the priorities backwards. The gap
+  must be unrevealable, not merely collapsed-when-convenient — and the
+  moment the user turns back toward it is both the last chance to collapse
+  unseen and a moment when no opposing momentum can be live.
+- **The quiet-wait is still load-bearing as a fallback.** The same collapse
+  that is invisible at rest is the original Bug 7 jump if it runs under
+  opposing live momentum. 400ms with no scroll events worked; `scrollend`
+  alone does not (it fires early on discrete scrolls — same finding as
+  Bug 7).
 
 ---
 
@@ -967,9 +1014,12 @@ never when `visible`. Then `ScrollTrigger.refresh()`.
 - Don't let any scroll callback pause the video once real playback has
   started. The only allowed post-handoff intervention is resuming an iOS
   offscreen suspension.
-- Don't change document height while the seam is on screen or scroll is
-  live — not at the handoff, not "when scroll settles" (settle detection
-  lies; Bug 7). Defer to a provably-invisible moment (B.5) or don't do it.
+- Don't change document height under opposing live momentum or with real
+  content moving on screen — not at the handoff, not "when scroll settles"
+  (settle detection lies; Bug 7). Defer to an invisibly-anchored moment —
+  touchstart, first turn-back, fully-below, or scroll-quiet (B.5) — or
+  don't do it. And don't let "deferred" mean the user can ever *see* the
+  un-reclaimed space while you wait (Bug 14, second report).
 - Don't trust warm-cache tests of media buffering. Bug 11 passed every test
   for weeks on the HTTP disk cache. Cold-cache + real device or it isn't
   verified.
@@ -987,9 +1037,10 @@ handoff done, run this on a physical device, **cold cache**:
 2. Scrub down and **back up** inside the zone → frames track in both
    directions, no black, no poster flash.
 3. Scrub through → playback starts at the scrub-end frame, in real time.
-4. While it plays, scroll **up** past it → scroll moves 1:1 immediately (no
-   dead zone), video keeps playing, caption stays off, **no blank band**
-   between the demo and the section above.
+4. While it plays, scroll **up** past it — *immediately*, without pausing
+   first → scroll moves 1:1 (no dead zone), video keeps playing, caption
+   stays off, **no blank band** between the demo and the section above at
+   any point on the way up (not even one that closes later).
 5. Scroll back down → still playing (or `ended` + replay overlay), never
    frozen mid-frame, scrub never re-takes the playhead.
 6. Let it end → replay overlay; replay → plays from 0; repeat step 4.
@@ -1011,5 +1062,6 @@ Media below a trigger   — reserved aspect-ratio boxes, always (Bug 10)
 onLeave (Pattern B)     — startPlayback() and NOTHING else
 Ownership (Pattern B)   — ONE-SHOT: played flips once; all scroll writers proxy-gated (B.3)
 At handoff (Pattern B)  — retire sticky: relative + top:scrubPx, pixel-identical (B.4)
-After handoff (B)       — reclaim travel at a quiet offscreen moment, 2px epsilon (B.5)
+After handoff (B)       — reclaim travel on turn-back (touchstart / first up-scroll),
+                          quiet + below as fallbacks, 2px epsilon (B.5)
 ```
