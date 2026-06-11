@@ -106,8 +106,10 @@ export function MacbookDemo({ variant }: Props) {
                 // The kiss leaves the playhead a few frames in — a cracked-
                 // open lid. Seek back so the rest state shown on approach is
                 // the closed lid (same as the poster) until the scrub takes
-                // over.
-                video.currentTime = 0;
+                // over. Unless the user is already scrubbing in the zone —
+                // the scrub owns currentTime there, and a late kiss seeking
+                // to 0 would snap the lid shut mid-scrub.
+                if (!video.dataset.inZone) video.currentTime = 0;
               })
               .catch(() => {
                 delete video.dataset.warming;

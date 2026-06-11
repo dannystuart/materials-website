@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { deferGsap } from "@/lib/scrollTrigger";
 import { SCRUB_PX } from "./scrubConfig";
 
@@ -15,8 +15,10 @@ type Args = {
   variant: "desktop" | "mobile";
   enabled: boolean;
   onScrubComplete?: () => void;
-  // Fired when the user scrolls back up into the scrub zone after a handoff —
-  // the scrub re-takes the playhead, so the replay overlay must hide.
+  // Fired when the user scrolls back up into the scrub zone BEFORE real
+  // playback has started (post-handoff the demo is fixed and this never
+  // fires) — the scrub re-takes the playhead, so the replay overlay must
+  // hide if anything showed it.
   onScrubReenter?: () => void;
 };
 
@@ -39,10 +41,26 @@ type Args = {
 // compositor-driven, so it also can't lag a momentum flick the way a JS-timed
 // position swap can. See docs/scroll-scrubbed-video-recipe.md.
 //
-// The zone is symmetric: scrolling back up re-sticks the block and the scrub
-// re-takes the playhead (the lid closes again); playback is re-handed-off on
-// the next pass down. That symmetry is what makes an empty band above the
-// demo impossible in every rest state — there is no torn-down/frozen state.
+// The scrub is ONE-SHOT. Before the handoff the zone is freely scrubbable in
+// both directions (the lid follows the scroll). The moment real playback
+// starts — handoff or the replay button — the demo is done with scroll for
+// good: the pin is retired (the block un-sticks and parks at its
+// end-of-travel offset, pixel-identical, constant document height), no
+// scroll position ever re-takes the playhead, moves the caption, or pauses
+// the video again (the prod "reverse scrub out of nowhere" and "page stops
+// scrolling on the way back up" reports). Post-handoff the section scrolls
+// as if nothing was ever pinned.
+//
+// The consumed travel is then RECLAIMED. Retiring the pin leaves scrubPx of
+// dead space above the block (the distance the pin travelled), which read as
+// a huge black gap between sections when scrolling back up. It can't be
+// removed at the handoff itself — that's the document-height-change-under-a-
+// live-scroll jump bug all over again — so it collapses at the first safe
+// moment after playback starts: scrolling has gone quiet (or the whole
+// section is below the viewport, where layout changes are invisible), the
+// seam is fully offscreen, and the scroll position is re-anchored in the
+// same task so not a pixel moves on screen. After the reclaim the section is
+// plain static layout with no gap.
 export function useMacbookScrub({
   travelRef,
   blockRef,
@@ -117,17 +135,82 @@ export function useMacbookScrub({
         // and the play toggle.
         const UP = -(captionH + 24);
 
-        // Playback ownership. `played` flips true when real playback starts
-        // (handoff or the replay button) and back to false when the video
-        // ends or the user scrolls fully above the zone. While true, the
-        // zone is playback-neutral: the scrub stops writing currentTime and
-        // re-entering the zone does NOT pause. The natural place to rest and
-        // watch the demo is just inside the zone end — on iOS, momentum +
-        // re-centring lands there almost every time, and the old
-        // pause-on-enterBack froze the demo on an open-lid frame with no way
-        // to ever reach `ended` (the prod "video never plays after the
-        // scrub" report). The scrub re-takes only once ownership lapses.
+        // Playback ownership — PERMANENT. `played` flips true when real
+        // playback starts (handoff or the replay button) and never flips
+        // back: the scrub runs once per page load. While true, scroll is
+        // playback-neutral — the scrub stops writing currentTime, the
+        // caption stops following the timeline, and re-entering the zone
+        // does NOT pause. Two prod reports drove this: (1) the old
+        // pause-on-enterBack froze the demo on an open-lid frame with no
+        // way to ever reach `ended` (resting just inside the zone end is
+        // where iOS momentum naturally lands); (2) releasing ownership on
+        // `ended`/leave-above let scrolling up replay the scrub in reverse
+        // over a demo the user had already watched.
         let played = false;
+
+        // Travel reclaim (see the architecture comment up top). Collapsing
+        // the spacer moves the block and everything below it up by scrubPx,
+        // so it only runs when that shift is invisible:
+        // - "above": the gap sits fully above the viewport (the user is at
+        //   or below the demo). Everything they can see shifts up scrubPx,
+        //   so the scroll position is re-anchored by the same amount in the
+        //   same task — net zero pixels moved. Scroll must be QUIET first:
+        //   an absolute scrollTo under live momentum is the original
+        //   handoff-jump bug.
+        // - "below": the whole section is below the viewport (the user
+        //   scrolled back above it). Nothing they can see moves and the
+        //   scroll position stays valid, so this is safe even mid-scroll.
+        // If the seam is on screen (parked mid-zone), wait — the next
+        // scroll re-schedules.
+        let reclaimed = false;
+        let reclaimTimer: number | undefined;
+        const reclaimState = () => {
+          // 2px tolerance on both boundaries: scroll positions land on
+          // whole device pixels while the measured geometry is fractional,
+          // so a user resting exactly at the handoff point can sit a
+          // sub-pixel short of "above" forever (measured: 0.07px on
+          // mobile). The sliver this admits is gap-black on a black page.
+          const rect = travel.getBoundingClientRect();
+          if (rect.top + scrubPx <= 2) return "above";
+          if (rect.top >= window.innerHeight - 2) return "below";
+          return "visible";
+        };
+        const reclaimTravel = (state: "above" | "below") => {
+          reclaimed = true;
+          window.clearTimeout(reclaimTimer);
+          window.removeEventListener("scroll", onReclaimScroll);
+          const y = window.scrollY;
+          // Back into flow at the wrapper top (the sticky class is inert
+          // once the spacer is gone — zero slack to travel).
+          block.style.position = "";
+          block.style.top = "";
+          travel.style.setProperty("--scrub-travel", "0px");
+          if (state === "above") window.scrollTo(0, y - scrubPx);
+          // Triggers below the demo measured the taller layout — re-anchor
+          // them to the reclaimed one. Quiet moment, so this can't fight a
+          // live scroll.
+          ScrollTrigger.refresh();
+        };
+        const onReclaimQuiet = () => {
+          if (reclaimed) return;
+          const state = reclaimState();
+          if (state === "visible") return;
+          reclaimTravel(state);
+        };
+        const onReclaimScroll = () => {
+          if (reclaimed) return;
+          if (reclaimState() === "below") {
+            reclaimTravel("below");
+            return;
+          }
+          window.clearTimeout(reclaimTimer);
+          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+        };
+        const armTravelReclaim = () => {
+          window.addEventListener("scroll", onReclaimScroll, { passive: true });
+          reclaimTimer = window.setTimeout(onReclaimQuiet, 400);
+        };
+
         const startPlayback = () => {
           if (played) {
             // Re-crossing the handoff with ownership live — just undo an
@@ -139,6 +222,16 @@ export function useMacbookScrub({
           // Tells MacbookDemo's warm kiss (play→pause), if still in flight,
           // not to pause a video that has since really started.
           video.dataset.handedOff = "1";
+          // Retire the pin for good. Un-stick the block and park it at its
+          // end-of-travel offset — the exact pixel position sticky holds as
+          // the user crosses the zone end, so the swap is invisible and the
+          // document height never changes. Without this, sticky re-pins the
+          // block on the way back up and the page "stops scrolling" for
+          // scrubPx before releasing — the post-handoff scroll must behave
+          // as if nothing was ever pinned.
+          block.style.position = "relative";
+          block.style.top = `${scrubPx}px`;
+          armTravelReclaim();
           video.play().catch(() => {});
           cbComplete.current?.();
         };
@@ -207,27 +300,25 @@ export function useMacbookScrub({
             // travel is permanent layout, so there is nothing to tear down,
             // restore, or scroll-correct.
             onLeave: () => startPlayback(),
-            // Scrub re-entry (scrolling back up into the zone). While
-            // playback owns the video, do nothing — see the ownership note
-            // above. Once ownership has lapsed (ended / re-armed), the scrub
-            // re-takes the playhead on the next update, so stop any
-            // playback, kill any in-flight caption toggle tween (the
-            // timeline owns the caption inside the zone), and let the
-            // component hide the replay overlay. The playhead snapping back
-            // to the scrub frame is the designed "rewind" of the zone.
+            // Scrub re-entry (scrolling back up into the zone). After the
+            // handoff ownership is permanent, so do nothing. This path only
+            // matters pre-handoff (the user crossed the end without the
+            // scrub completing — fast flick — then came back): the scrub
+            // re-takes the playhead on the next update, so stop anything in
+            // flight and let the component hide the replay overlay.
             onEnterBack: () => {
               if (played) return;
               video.pause();
               if (caption) gsap.killTweensOf(caption);
               cbReenter.current?.();
             },
-            // Scrolling fully above the zone releases ownership: stop any
-            // playback still running offscreen below, and the next pass
-            // down scrubs from the closed lid again.
-            onLeaveBack: () => {
-              if (!played) return;
-              played = false;
-              if (!video.ended) video.pause();
+            // Zone-occupancy marker for MacbookDemo's warm kiss: if the kiss
+            // resolves while the user is already scrubbing inside the zone
+            // (fast flick on a cold cache), its seek-to-frame-0 would snap
+            // the lid shut under them — in-zone it pauses without seeking.
+            onToggle: (self) => {
+              if (self.isActive) video.dataset.inZone = "1";
+              else delete video.dataset.inZone;
             },
           },
         });
@@ -241,9 +332,9 @@ export function useMacbookScrub({
         // hands off to real-time playback near full-open where the lid's own
         // motion is already settling.
         // Tween a proxy, not the video: the timeline keeps mapping scroll
-        // position inside the zone even after the handoff (it's how the
-        // post-ended re-scrub works), so the currentTime writes are gated
-        // on ownership rather than killed.
+        // position inside the zone even after the handoff (killing it would
+        // also kill the trigger's enter/leave bookkeeping), so the
+        // currentTime writes are gated on ownership instead.
         const scrub = { t: 0 };
         tl.to(scrub, {
           t: scrubDuration,
@@ -319,21 +410,19 @@ export function useMacbookScrub({
         }
 
         // Ownership bookkeeping (all variants). Any real playback start —
-        // handoff or the replay button — takes ownership; `ended` releases
-        // it, so the replay overlay appears and the zone is scrubbable
-        // again. The kiss's fake play is excluded via its marker.
+        // handoff or the replay button — takes ownership for good; `ended`
+        // shows the replay overlay (component-side) but never re-arms the
+        // scrub. The kiss's fake play is excluded via its marker.
         const onPlayOwn = () => {
           if (!video.dataset.warming) played = true;
         };
-        const onEndedOwn = () => {
-          played = false;
-        };
         video.addEventListener("play", onPlayOwn);
-        video.addEventListener("ended", onEndedOwn);
 
-        // iOS suspends media that scrolls fully offscreen mid-playback and
-        // leaves it paused with no event the user can see. If playback
-        // still owns the video when the demo comes back into view, resume.
+        // Playback is never paused on scroll — but iOS suspends media that
+        // scrolls fully offscreen mid-playback (leaving it paused with no
+        // event the user can see), so resume when the demo scrolls back
+        // into view. `ended` stays ended: the replay overlay owns that
+        // state.
         const resumeIo = new IntersectionObserver((entries) => {
           if (!entries.some((e) => e.isIntersecting)) return;
           if (played && video.paused && !video.ended) {
@@ -344,8 +433,9 @@ export function useMacbookScrub({
 
         cleanupOwnership = () => {
           video.removeEventListener("play", onPlayOwn);
-          video.removeEventListener("ended", onEndedOwn);
           resumeIo.disconnect();
+          window.clearTimeout(reclaimTimer);
+          window.removeEventListener("scroll", onReclaimScroll);
         };
       };
 
