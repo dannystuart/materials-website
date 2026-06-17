@@ -59,13 +59,51 @@ const jsonLd = {
       description: SITE_DESCRIPTION,
       url: SITE_URL,
       image: `${SITE_URL}/opengraph-image.png`,
-      brand: { "@id": organizationId },
+      // Explicit Brand type — a bare { "@id": … } reference reads as an
+      // invalid object type in Google's Merchant-listings validator.
+      brand: { "@type": "Brand", name: SITE_NAME },
       offers: {
         "@type": "Offer",
         price: offerPrice,
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
         url: PAID_PACK.ctaHref,
+        // Digital download — instant, no postage. Modelled as free shipping
+        // so Google's Merchant listing has the field it expects.
+        shippingDetails: {
+          "@type": "OfferShippingDetails",
+          shippingRate: {
+            "@type": "MonetaryAmount",
+            value: "0",
+            currency: "USD",
+          },
+          shippingDestination: {
+            "@type": "DefinedRegion",
+            addressCountry: "US",
+          },
+          deliveryTime: {
+            "@type": "ShippingDeliveryTime",
+            handlingTime: {
+              "@type": "QuantitativeValue",
+              minValue: 0,
+              maxValue: 0,
+              unitCode: "DAY",
+            },
+            transitTime: {
+              "@type": "QuantitativeValue",
+              minValue: 0,
+              maxValue: 0,
+              unitCode: "DAY",
+            },
+          },
+        },
+        // Digital goods are non-returnable once downloaded.
+        hasMerchantReturnPolicy: {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry: "US",
+          returnPolicyCategory:
+            "https://schema.org/MerchantReturnNotPermitted",
+        },
       },
       aggregateRating: {
         "@type": "AggregateRating",
