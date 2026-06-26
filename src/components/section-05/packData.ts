@@ -52,19 +52,18 @@ export const FREE_PACK: Pack = {
   variant: "free",
   catalogHeader: "DARK MATERIALS · 10 SPECIMENS",
   name: "Dark Materials",
-  tagline: "Ten dark Materials. Free, no email.",
+  tagline: "Ten dark Materials. Free.",
   price: "Free",
   inventory: [
     { emoji: "🌄", text: "10 stills" },
     { emoji: "🎥", text: "10 video loops" },
-    { emoji: "👻", text: "10 transparent PNGs" },
     { emoji: "⚡️", text: "Free updates" },
   ],
   ctaLabel: "Get Dark Materials",
   ctaHref:
     "https://dannystuart.gumroad.com/l/Dark-Materials-Abstract-Design-Textures?utm_source=materials-website&utm_medium=homepage&utm_campaign=dark-materials",
-  rating: 4.9,
-  reviewCount: 8,
+  rating: 4.8,
+  reviewCount: 13,
 };
 
 // Free reuses §02's palette family directly (blue → violet).

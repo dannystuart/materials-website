@@ -25,7 +25,6 @@ export const HeroVideo = forwardRef<HTMLVideoElement, Props>(function HeroVideo(
       playsInline
       preload="auto"
       autoPlay={isMobile}
-      loop={isMobile}
       poster={
         isMobile
           ? "/videos/materials-hero-720-poster.jpg"
